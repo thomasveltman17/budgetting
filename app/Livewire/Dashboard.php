@@ -31,6 +31,7 @@ class Dashboard extends Component
     public function uncategorizedCount(): int
     {
         return Transaction::where('period_id', $this->period->id)
+            ->whereNull('parent_transaction_id')
             ->whereNull('category_id')
             ->where('amount', '<', 0)
             ->count();
@@ -43,13 +44,19 @@ class Dashboard extends Component
 
         $order = ['rabobank' => 0, 'revolut' => 1, 'amex' => 2];
 
-        return Account::with(['transactions' => fn ($q) => $q->where('period_id', $periodId)])
+        return Account::with(['transactions' => fn ($q) => $q
+            ->where('period_id', $periodId)
+            ->whereNull('parent_transaction_id')
+            ->with('repayments'),
+        ])
             ->get()
             ->sortBy(fn ($account) => $order[$account->name] ?? 99)
             ->values()
             ->map(fn ($account) => [
                 'account' => $account,
-                'totalSpent' => abs((float) $account->transactions->where('amount', '<', 0)->sum('amount')),
+                'totalSpent' => abs((float) $account->transactions
+                    ->where('amount', '<', 0)
+                    ->sum(fn ($t) => $t->amount + $t->repayments->sum('amount'))),
                 'transactionCount' => $account->transactions->count(),
                 'uncategorizedCount' => $account->transactions->whereNull('category_id')->where('amount', '<', 0)->count(),
             ]);
@@ -59,7 +66,10 @@ class Dashboard extends Component
     public function categoryProgress(): Collection
     {
         $periodId = $this->period->id;
-        $transactions = Transaction::where('period_id', $periodId)->get();
+        $transactions = Transaction::where('period_id', $periodId)
+            ->whereNull('parent_transaction_id')
+            ->with('repayments')
+            ->get();
         $targets = BudgetTarget::where('period_id', $periodId)->get()->keyBy('category_id');
 
         return Category::where('is_archived', false)
@@ -69,7 +79,7 @@ class Dashboard extends Component
                 $spent = abs((float) $transactions
                     ->where('category_id', $category->id)
                     ->where('amount', '<', 0)
-                    ->sum('amount'));
+                    ->sum(fn ($t) => $t->amount + $t->repayments->sum('amount')));
 
                 $target = $targets->has($category->id)
                     ? (float) $targets->get($category->id)->amount
@@ -99,7 +109,8 @@ class Dashboard extends Component
 
         $transactions = Transaction::where('period_id', $this->period->id)
             ->where('account_id', $amexAccount->id)
-            ->with('category')
+            ->whereNull('parent_transaction_id')
+            ->with(['category', 'repayments'])
             ->get();
 
         if ($transactions->isEmpty()) {
@@ -108,7 +119,7 @@ class Dashboard extends Component
 
         $spentByCategory = $transactions
             ->groupBy(fn ($t) => $t->category?->name ?? '__uncategorized__')
-            ->map(fn ($group) => abs((float) $group->where('amount', '<', 0)->sum('amount')));
+            ->map(fn ($group) => abs((float) $group->where('amount', '<', 0)->sum(fn ($t) => $t->amount + $t->repayments->sum('amount'))));
 
         $lines = [
             ['label' => 'Short-term Spends', 'payFrom' => 'Revolut (short-term)', 'amount' => (float) $spentByCategory->get('Short-term Spends', 0)],

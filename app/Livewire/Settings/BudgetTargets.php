@@ -29,10 +29,9 @@ class BudgetTargets extends Component
     }
 
     #[Computed]
-    public function transactionalCategories(): Collection
+    public function categories(): Collection
     {
         return Category::where('is_archived', false)
-            ->where('type', 'transactional')
             ->orderBy('sort_order')
             ->get();
     }
@@ -81,7 +80,7 @@ class BudgetTargets extends Component
     {
         return view('livewire.settings.budget-targets', [
             'period' => $this->period,
-            'transactionalCategories' => $this->transactionalCategories,
+            'categories' => $this->categories,
             'categorySpend' => $this->categorySpend,
         ]);
     }
@@ -91,7 +90,7 @@ class BudgetTargets extends Component
         $periodId = $this->period->id;
         $targets = BudgetTarget::where('period_id', $periodId)->get()->keyBy('category_id');
 
-        foreach ($this->transactionalCategories as $category) {
+        foreach ($this->categories as $category) {
             $key = (string) $category->id;
             $this->targetAmounts[$key] = $targets->has($category->id)
                 ? number_format((float) $targets->get($category->id)->amount, 2, '.', '')
