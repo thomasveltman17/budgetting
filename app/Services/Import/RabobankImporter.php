@@ -15,7 +15,6 @@ class RabobankImporter extends BaseImporter
 
         try {
             $rows = SimpleExcelReader::create($filePath, 'csv')
-                ->useDelimiter(';')
                 ->getRows();
 
             $rows->each(function (array $row) use ($accountId, $result) {
@@ -27,21 +26,17 @@ class RabobankImporter extends BaseImporter
 
                     $date = Carbon::createFromFormat('Y-m-d', $dateStr);
 
-                    $description = trim(
-                        ($row['Naam tegenpartij'] ?? '').' '.($row['Omschrijving-1'] ?? '')
-                    );
-                    $description = $description ?: ($row['Omschrijving-2'] ?? 'Unknown');
-                    $description = trim($description);
+                    $counterparty = trim($row['Naam tegenpartij'] ?? '');
+                    $memo = trim($row['Omschrijving-1'] ?? '');
+                    $description = $counterparty !== '' && $memo !== ''
+                        ? $counterparty.' — '.$memo
+                        : ($counterparty ?: ($memo ?: 'Unknown'));
+                    $description = substr(trim($description), 0, 255);
 
+                    // Bedrag already carries the sign: '-10,00' or '+102,58'
+                    // Dutch notation: comma = decimal separator, dot = thousands separator
                     $rawAmount = $row['Bedrag'] ?? '0';
                     $amount = (float) str_replace(',', '.', str_replace('.', '', $rawAmount));
-
-                    $debitCredit = strtoupper($row['Af Bij'] ?? 'D');
-                    if ($debitCredit === 'D') {
-                        $amount = -abs($amount);
-                    } else {
-                        $amount = abs($amount);
-                    }
 
                     $hash = $this->generateHash($accountId, $date->toDateString(), (string) $amount, $description);
 
