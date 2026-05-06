@@ -1,4 +1,4 @@
-<div class="flex flex-col min-h-full">
+<div class="flex flex-col min-h-full" x-data="{ selectedIds: [] }">
 
     {{-- ── Filter Bar ──────────────────────────────────────────────────── --}}
     <div class="sticky top-0 z-20 bg-white border-b border-gray-200 shadow-sm">
@@ -58,7 +58,7 @@
     </div>
 
     {{-- ── Transaction List ─────────────────────────────────────────────── --}}
-    <div class="flex-1 px-6 py-6">
+    <div class="flex-1 px-6 py-6 pb-32">
 
         @if ($transactions->isEmpty())
 
@@ -111,6 +111,18 @@
                             {{ $index < $group->count() - 1 ? 'border-b border-gray-50' : '' }}
                             hover:bg-gray-50/70 transition-colors group">
 
+                            {{-- Checkbox --}}
+                            <div class="shrink-0">
+                                <input
+                                    type="checkbox"
+                                    :checked="selectedIds.includes({{ $transaction->id }})"
+                                    @change="$event.target.checked
+                                        ? selectedIds.push({{ $transaction->id }})
+                                        : selectedIds = selectedIds.filter(id => id !== {{ $transaction->id }})"
+                                    class="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                >
+                            </div>
+
                             {{-- Description + notes --}}
                             <div class="flex-1 min-w-0">
                                 <p class="text-sm font-medium text-gray-900 truncate leading-tight">
@@ -154,6 +166,17 @@
                                 {{ $isNegative ? '−' : '+' }}&thinsp;€&thinsp;{{ number_format(abs($transaction->amount), 2, ',', '.') }}
                             </span>
 
+                            {{-- Edit button --}}
+                            <button
+                                wire:click="startEdit({{ $transaction->id }})"
+                                title="Edit"
+                                class="opacity-0 group-hover:opacity-100 shrink-0 p-1.5 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 transition-all"
+                            >
+                                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Z" />
+                                </svg>
+                            </button>
+
                             {{-- Delete with inline confirmation --}}
                             <div x-data="{ confirming: false }" class="shrink-0 w-20 flex items-center justify-end gap-1">
                                 {{-- Delete icon (visible on row hover) --}}
@@ -188,6 +211,36 @@
             @endforeach
 
         @endif
+    </div>
+
+    {{-- ── Bulk Action Bar ──────────────────────────────────────────────── --}}
+    <div
+        x-show="selectedIds.length > 0"
+        x-cloak
+        x-transition:enter="transition ease-out duration-150"
+        x-transition:enter-start="opacity-0 translate-y-2"
+        x-transition:enter-end="opacity-100 translate-y-0"
+        x-transition:leave="transition ease-in duration-100"
+        x-transition:leave-start="opacity-100 translate-y-0"
+        x-transition:leave-end="opacity-0 translate-y-2"
+        class="fixed bottom-24 right-6 z-40 flex items-center gap-3 bg-white border border-gray-200 rounded-2xl shadow-xl px-4 py-3"
+    >
+        <span class="text-sm font-medium text-gray-700" x-text="`${selectedIds.length} selected`"></span>
+        <button
+            @click="$wire.deleteSelected(selectedIds).then(() => { selectedIds = [] })"
+            class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors"
+        >
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+            </svg>
+            Delete selected
+        </button>
+        <button
+            @click="selectedIds = []"
+            class="text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
+        >
+            Clear
+        </button>
     </div>
 
     {{-- ── Floating Action Buttons ──────────────────────────────────────── --}}
@@ -493,6 +546,149 @@
                     >
                         <span wire:loading.remove wire:target="save">Save transaction</span>
                         <span wire:loading wire:target="save">Saving…</span>
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    @endif
+
+    {{-- ── Edit Transaction Modal ──────────────────────────────────────── --}}
+    @if ($showEditModal)
+        <div
+            class="fixed inset-0 z-50 flex items-center justify-center p-4"
+            x-data
+            x-on:keydown.escape.window="$wire.cancelEdit()"
+        >
+            <div
+                class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                wire:click="cancelEdit"
+            ></div>
+
+            <div class="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden">
+
+                <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+                    <div>
+                        <h2 class="text-base font-bold text-gray-900">Edit transaction</h2>
+                    </div>
+                    <button
+                        wire:click="cancelEdit"
+                        class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                    >
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="px-6 py-5 space-y-4">
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Date</label>
+                            <input
+                                type="date"
+                                wire:model="editDate"
+                                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                            >
+                            @error('editDate')
+                                <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Amount</label>
+                            <div class="flex">
+                                <span class="flex items-center px-3 text-sm font-medium text-gray-500 bg-gray-50 border border-r-0 border-gray-200 rounded-l-lg select-none">€</span>
+                                <input
+                                    type="number"
+                                    wire:model="editAmount"
+                                    step="0.01"
+                                    placeholder="-45.00"
+                                    class="flex-1 min-w-0 border border-gray-200 rounded-r-lg px-3 py-2 text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                                >
+                            </div>
+                            <p class="mt-1 text-xs text-gray-400">Negative = expense, positive = income</p>
+                            @error('editAmount')
+                                <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
+                            @enderror
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Description</label>
+                        <input
+                            type="text"
+                            wire:model="editDescription"
+                            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                        >
+                        @error('editDescription')
+                            <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Account</label>
+                            <select
+                                wire:model="editAccountId"
+                                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                            >
+                                <option value="">Select account…</option>
+                                @foreach ($accounts as $account)
+                                    <option value="{{ $account->id }}">{{ $account->label }}</option>
+                                @endforeach
+                            </select>
+                            @error('editAccountId')
+                                <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">
+                                Category <span class="text-gray-400 normal-case font-normal">(optional)</span>
+                            </label>
+                            <select
+                                wire:model="editCategoryId"
+                                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                            >
+                                <option value="">Uncategorized</option>
+                                @foreach ($categories as $category)
+                                    <option value="{{ $category->id }}">{{ $category->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">
+                            Notes <span class="text-gray-400 normal-case font-normal">(optional)</span>
+                        </label>
+                        <textarea
+                            wire:model="editNotes"
+                            rows="2"
+                            placeholder="Any additional details…"
+                            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none"
+                        ></textarea>
+                    </div>
+
+                </div>
+
+                <div class="flex items-center justify-end gap-3 px-6 py-4 bg-gray-50 border-t border-gray-100">
+                    <button
+                        wire:click="cancelEdit"
+                        class="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        wire:click="saveEdit"
+                        wire:loading.attr="disabled"
+                        wire:loading.class="opacity-70 cursor-not-allowed"
+                        class="px-5 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition-colors"
+                    >
+                        <span wire:loading.remove wire:target="saveEdit">Save changes</span>
+                        <span wire:loading wire:target="saveEdit">Saving…</span>
                     </button>
                 </div>
 
