@@ -32,9 +32,58 @@ class Dashboard extends Component
     {
         return Transaction::where('period_id', $this->period->id)
             ->whereNull('parent_transaction_id')
+            ->where('is_pending_return', false)
             ->whereNull('category_id')
             ->where('amount', '<', 0)
             ->count();
+    }
+
+    #[Computed]
+    public function periodOverview(): array
+    {
+        $transactions = Transaction::where('period_id', $this->period->id)
+            ->whereNull('parent_transaction_id')
+            ->where('is_pending_return', false)
+            ->with('repayments')
+            ->get();
+
+        $income = (float) $transactions
+            ->where('amount', '>', 0)
+            ->sum('amount');
+
+        $expenses = abs((float) $transactions
+            ->where('amount', '<', 0)
+            ->sum(fn ($t) => $t->amount + $t->repayments->sum('amount')));
+
+        return [
+            'income' => $income,
+            'expenses' => $expenses,
+            'net' => $income - $expenses,
+        ];
+    }
+
+    #[Computed]
+    public function previousPeriodSpend(): array
+    {
+        $previousPeriod = Period::where('start_date', '<', $this->period->start_date)
+            ->orderByDesc('start_date')
+            ->first();
+
+        if (! $previousPeriod) {
+            return [];
+        }
+
+        return Transaction::where('period_id', $previousPeriod->id)
+            ->whereNull('parent_transaction_id')
+            ->where('is_pending_return', false)
+            ->where('amount', '<', 0)
+            ->with('repayments')
+            ->get()
+            ->groupBy('account_id')
+            ->map(fn ($group) => abs((float) $group->sum(
+                fn ($t) => $t->amount + $t->repayments->sum('amount')
+            )))
+            ->toArray();
     }
 
     #[Computed]
@@ -47,6 +96,7 @@ class Dashboard extends Component
         return Account::with(['transactions' => fn ($q) => $q
             ->where('period_id', $periodId)
             ->whereNull('parent_transaction_id')
+            ->where('is_pending_return', false)
             ->with('repayments'),
         ])
             ->get()
@@ -59,6 +109,7 @@ class Dashboard extends Component
                     ->sum(fn ($t) => $t->amount + $t->repayments->sum('amount'))),
                 'transactionCount' => $account->transactions->count(),
                 'uncategorizedCount' => $account->transactions->whereNull('category_id')->where('amount', '<', 0)->count(),
+                'previousSpent' => $this->previousPeriodSpend[$account->id] ?? null,
             ]);
     }
 
@@ -68,6 +119,7 @@ class Dashboard extends Component
         $periodId = $this->period->id;
         $transactions = Transaction::where('period_id', $periodId)
             ->whereNull('parent_transaction_id')
+            ->where('is_pending_return', false)
             ->with('repayments')
             ->get();
         $targets = BudgetTarget::where('period_id', $periodId)->get()->keyBy('category_id');
@@ -110,6 +162,7 @@ class Dashboard extends Component
         $transactions = Transaction::where('period_id', $this->period->id)
             ->where('account_id', $amexAccount->id)
             ->whereNull('parent_transaction_id')
+            ->where('is_pending_return', false)
             ->with(['category', 'repayments'])
             ->get();
 
@@ -206,6 +259,7 @@ class Dashboard extends Component
         return view('livewire.dashboard', [
             'period' => $this->period,
             'uncategorizedCount' => $this->uncategorizedCount,
+            'periodOverview' => $this->periodOverview,
             'accountSummaries' => $this->accountSummaries,
             'categoryProgress' => $this->categoryProgress,
             'amexSplit' => $this->amexSplit,

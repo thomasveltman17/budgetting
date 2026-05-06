@@ -20,6 +20,31 @@
         </div>
     @endif
 
+    {{-- ── Period Overview ────────────────────────────────────────────────── --}}
+    <section>
+        <div class="grid grid-cols-3 gap-4">
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm px-5 py-4">
+                <p class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Income</p>
+                <p class="text-2xl font-bold tabular-nums text-emerald-600">
+                    +&thinsp;€&thinsp;{{ number_format($periodOverview['income'], 2, ',', '.') }}
+                </p>
+            </div>
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm px-5 py-4">
+                <p class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Expenses</p>
+                <p class="text-2xl font-bold tabular-nums text-red-500">
+                    −&thinsp;€&thinsp;{{ number_format($periodOverview['expenses'], 2, ',', '.') }}
+                </p>
+            </div>
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm px-5 py-4">
+                <p class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Net</p>
+                @php $overviewNet = $periodOverview['net']; @endphp
+                <p class="text-2xl font-bold tabular-nums {{ $overviewNet >= 0 ? 'text-gray-900' : 'text-red-500' }}">
+                    {{ $overviewNet >= 0 ? '+' : '−' }}&thinsp;€&thinsp;{{ number_format(abs($overviewNet), 2, ',', '.') }}
+                </p>
+            </div>
+        </div>
+    </section>
+
     {{-- ── Section 1: Account Summary Cards ──────────────────────────────── --}}
     <section>
         <h2 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Account Summary</h2>
@@ -46,7 +71,15 @@
                         <p class="text-2xl font-bold text-gray-900 tabular-nums">
                             €&thinsp;{{ number_format($summary['totalSpent'], 2, ',', '.') }}
                         </p>
-                        <p class="text-xs text-gray-400 mt-0.5">spent this period</p>
+                        <div class="flex items-center gap-2 mt-0.5">
+                            <p class="text-xs text-gray-400">spent this period</p>
+                            @if ($summary['previousSpent'] !== null && $summary['previousSpent'] > 0)
+                                @php $delta = round((($summary['totalSpent'] - $summary['previousSpent']) / $summary['previousSpent']) * 100); @endphp
+                                <span class="text-xs font-semibold tabular-nums {{ $delta > 0 ? 'text-red-500' : 'text-emerald-600' }}">
+                                    {{ $delta > 0 ? '↑' : '↓' }}&thinsp;{{ abs($delta) }}%
+                                </span>
+                            @endif
+                        </div>
                     </div>
 
                     @if ($summary['uncategorizedCount'] > 0)
@@ -78,11 +111,13 @@
             @foreach ($categoryProgress as $index => $row)
                 @php
                     $isLast = $index === count($categoryProgress) - 1;
+                    $isGoalCategory = in_array($row['category']->type, ['savings', 'investment']);
                     $barColor = match (true) {
-                        $row['percentage'] === null                => 'bg-gray-300',
-                        $row['percentage'] > 100                  => 'bg-red-500',
-                        $row['percentage'] > 80                   => 'bg-orange-400',
-                        default                                   => 'bg-blue-500',
+                        $row['percentage'] === null                        => 'bg-gray-300',
+                        $row['percentage'] > 100 && $isGoalCategory       => 'bg-emerald-500',
+                        $row['percentage'] > 100                          => 'bg-red-500',
+                        $row['percentage'] > 80 && ! $isGoalCategory      => 'bg-orange-400',
+                        default                                           => 'bg-blue-500',
                     };
                     $fillPct = $row['percentage'] !== null ? min(100, $row['percentage']) : 0;
                 @endphp
@@ -99,7 +134,8 @@
                             <span class="text-xs text-gray-400 tabular-nums shrink-0">
                                 / €&thinsp;{{ number_format($row['target'], 2, ',', '.') }}
                             </span>
-                            <span class="text-xs font-semibold tabular-nums w-12 text-right shrink-0 {{ $row['percentage'] > 100 ? 'text-red-500' : 'text-gray-500' }}">
+                            <span class="text-xs font-semibold tabular-nums w-12 text-right shrink-0
+                                {{ $row['percentage'] > 100 && $isGoalCategory ? 'text-emerald-600' : ($row['percentage'] > 100 ? 'text-red-500' : 'text-gray-500') }}">
                                 {{ $row['percentage'] }}%
                             </span>
                         @else

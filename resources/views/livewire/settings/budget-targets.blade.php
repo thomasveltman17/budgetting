@@ -18,11 +18,13 @@
                     $percentage = ($target !== '' && (float) $target > 0)
                         ? round(($spent / (float) $target) * 100)
                         : null;
+                    $isGoalCategory = in_array($category->type, ['savings', 'investment']);
                     $barColor = match (true) {
-                        $percentage === null  => 'bg-gray-200',
-                        $percentage > 100     => 'bg-red-500',
-                        $percentage > 80      => 'bg-orange-400',
-                        default               => 'bg-blue-500',
+                        $percentage === null              => 'bg-gray-200',
+                        $percentage > 100 && $isGoalCategory => 'bg-emerald-500',
+                        $percentage > 100                => 'bg-red-500',
+                        $percentage > 80 && !$isGoalCategory => 'bg-orange-400',
+                        default                          => 'bg-blue-500',
                     };
                 @endphp
 
@@ -50,7 +52,8 @@
                         </div>
 
                         @if ($percentage !== null)
-                            <span class="text-xs font-semibold tabular-nums w-10 text-right shrink-0 {{ $percentage > 100 ? 'text-red-500' : 'text-gray-500' }}">
+                            <span class="text-xs font-semibold tabular-nums w-10 text-right shrink-0
+                                {{ $percentage > 100 && $isGoalCategory ? 'text-emerald-600' : ($percentage > 100 ? 'text-red-500' : 'text-gray-500') }}">
                                 {{ $percentage }}%
                             </span>
                         @else

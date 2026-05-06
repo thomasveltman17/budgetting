@@ -40,6 +40,8 @@ class BudgetTargets extends Component
     public function categorySpend(): array
     {
         return Transaction::where('period_id', $this->period->id)
+            ->whereNull('parent_transaction_id')
+            ->where('is_pending_return', false)
             ->where('amount', '<', 0)
             ->selectRaw('category_id, SUM(amount) as total')
             ->groupBy('category_id')

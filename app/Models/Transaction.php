@@ -19,11 +19,13 @@ class Transaction extends Model
         'source',
         'import_hash',
         'notes',
+        'is_pending_return',
     ];
 
     protected $casts = [
         'date' => 'date',
         'amount' => 'decimal:2',
+        'is_pending_return' => 'boolean',
     ];
 
     public function period(): BelongsTo
