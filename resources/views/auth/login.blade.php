@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Sign in – Veltiq Budget</title>
+    <title>Sign in – Budgetting</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="h-full flex items-center justify-center bg-slate-900">
@@ -17,7 +17,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33" />
                 </svg>
             </div>
-            <h1 class="text-xl font-bold text-white tracking-tight">Veltiq Budget</h1>
+            <h1 class="text-xl font-bold text-white tracking-tight">Budgetting</h1>
             <p class="text-sm text-slate-400 mt-1">Sign in to your account</p>
         </div>
 
