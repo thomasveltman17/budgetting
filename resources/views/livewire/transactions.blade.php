@@ -161,10 +161,30 @@
                                 {{ $transaction->account->label }}
                             </span>
 
-                            {{-- Amount --}}
-                            <span class="shrink-0 w-28 text-right text-sm font-bold tabular-nums {{ $isNegative ? 'text-red-500' : 'text-emerald-600' }}">
-                                {{ $isNegative ? '−' : '+' }}&thinsp;€&thinsp;{{ number_format(abs($transaction->amount), 2, ',', '.') }}
-                            </span>
+                            {{-- Amount (gross + net if repayments exist) --}}
+                            <div class="shrink-0 w-32 text-right">
+                                <span class="text-sm font-bold tabular-nums {{ $isNegative ? 'text-red-500' : 'text-emerald-600' }}">
+                                    {{ $isNegative ? '−' : '+' }}&thinsp;€&thinsp;{{ number_format(abs($transaction->amount), 2, ',', '.') }}
+                                </span>
+                                @if ($transaction->repayments->isNotEmpty())
+                                    @php $net = (float) $transaction->amount + $transaction->repayments->sum('amount'); @endphp
+                                    <p class="text-xs text-gray-400 tabular-nums mt-0.5">
+                                        net {{ $net < 0 ? '−' : '+' }}&thinsp;€&thinsp;{{ number_format(abs($net), 2, ',', '.') }}
+                                    </p>
+                                @endif
+                            </div>
+
+                            {{-- Link repayments button --}}
+                            <button
+                                wire:click="openLinkModal({{ $transaction->id }})"
+                                title="Link repayments"
+                                class="opacity-0 group-hover:opacity-100 shrink-0 p-1.5 rounded-lg transition-all
+                                    {{ $transaction->repayments->isNotEmpty() ? 'opacity-100 text-emerald-500' : 'text-gray-400 hover:text-emerald-500 hover:bg-emerald-50' }}"
+                            >
+                                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" />
+                                </svg>
+                            </button>
 
                             {{-- Edit button --}}
                             <button
@@ -205,6 +225,54 @@
                             </div>
 
                         </div>
+
+                        {{-- Nested repayment rows --}}
+                        @foreach ($transaction->repayments as $repayment)
+                            @php
+                                $repaymentBadge = match ($repayment->account->name) {
+                                    'rabobank' => 'bg-blue-50 text-blue-700 ring-1 ring-blue-100',
+                                    'revolut'  => 'bg-violet-50 text-violet-700 ring-1 ring-violet-100',
+                                    'amex'     => 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100',
+                                    default    => 'bg-gray-100 text-gray-600',
+                                };
+                            @endphp
+                            <div class="flex items-center gap-4 pl-9 pr-4 py-2 bg-emerald-50/50 border-t border-emerald-100/70">
+                                {{-- Indent arrow --}}
+                                <svg class="w-3 h-3 text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="m4 4 8 8-8 8" />
+                                </svg>
+
+                                {{-- Description --}}
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-xs text-gray-600 truncate leading-tight">{{ $repayment->description }}</p>
+                                    @if ($repayment->notes)
+                                        <p class="text-xs text-gray-400 truncate mt-0.5">{{ $repayment->notes }}</p>
+                                    @endif
+                                </div>
+
+                                {{-- Account badge --}}
+                                <span class="shrink-0 text-xs font-semibold rounded-full px-2.5 py-1 {{ $repaymentBadge }} whitespace-nowrap">
+                                    {{ $repayment->account->label }}
+                                </span>
+
+                                {{-- Repayment amount --}}
+                                <span class="shrink-0 w-32 text-right text-xs font-bold tabular-nums text-emerald-600">
+                                    +&thinsp;€&thinsp;{{ number_format(abs($repayment->amount), 2, ',', '.') }}
+                                </span>
+
+                                {{-- Unlink button --}}
+                                <button
+                                    wire:click="unlinkRepayment({{ $repayment->id }})"
+                                    title="Unlink repayment"
+                                    class="shrink-0 p-1.5 rounded-lg text-gray-300 hover:text-red-400 hover:bg-red-50 transition-all"
+                                >
+                                    <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.181 8.68a4.503 4.503 0 0 1 1.903 6.405m-9.768-3.782L3.56 8.836a4.5 4.5 0 0 1 5.48-6.523m0 0L3.56 8.836M16.5 11.25 18 12.75m-12 0L7.5 15.75m12.75-3 1.5 1.5M3 12l1.5 1.5M21 12l-1.5-1.5M3 12l1.5-1.5" />
+                                    </svg>
+                                </button>
+                            </div>
+                        @endforeach
+
                     @endforeach
                 </div>
 
@@ -689,6 +757,79 @@
                     >
                         <span wire:loading.remove wire:target="saveEdit">Save changes</span>
                         <span wire:loading wire:target="saveEdit">Saving…</span>
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    @endif
+
+    {{-- ── Link Repayments Modal ───────────────────────────────────────── --}}
+    @if ($showLinkModal)
+        <div
+            class="fixed inset-0 z-50 flex items-center justify-center p-4"
+            x-data
+            x-on:keydown.escape.window="$wire.closeLinkModal()"
+        >
+            <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" wire:click="closeLinkModal"></div>
+
+            <div class="relative w-full max-w-xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
+
+                <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
+                    <div>
+                        <h2 class="text-base font-bold text-gray-900">Link repayments</h2>
+                        <p class="text-xs text-gray-400 mt-0.5">Select incoming payments that offset this expense</p>
+                    </div>
+                    <button wire:click="closeLinkModal" class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="overflow-y-auto flex-1">
+                    @if ($linkableTransactions->isEmpty())
+                        <div class="flex flex-col items-center justify-center py-12 text-center">
+                            <p class="text-sm font-semibold text-gray-600">No linkable transactions found</p>
+                            <p class="text-xs text-gray-400 mt-1">Import or add positive/incoming transactions first</p>
+                        </div>
+                    @else
+                        <div class="divide-y divide-gray-50">
+                            @foreach ($linkableTransactions as $linkable)
+                                @php
+                                    $linkableBadge = match ($linkable->account->name) {
+                                        'rabobank' => 'bg-blue-50 text-blue-700 ring-1 ring-blue-100',
+                                        'revolut'  => 'bg-violet-50 text-violet-700 ring-1 ring-violet-100',
+                                        'amex'     => 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100',
+                                        default    => 'bg-gray-100 text-gray-600',
+                                    };
+                                @endphp
+                                <div class="flex items-center gap-4 px-6 py-3 hover:bg-gray-50 transition-colors">
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-sm font-medium text-gray-900 truncate">{{ $linkable->description }}</p>
+                                        <p class="text-xs text-gray-400 mt-0.5">{{ $linkable->date->format('j M Y') }}</p>
+                                    </div>
+                                    <span class="shrink-0 text-xs font-semibold rounded-full px-2.5 py-1 {{ $linkableBadge }} whitespace-nowrap">
+                                        {{ $linkable->account->label }}
+                                    </span>
+                                    <span class="shrink-0 w-24 text-right text-sm font-bold tabular-nums text-emerald-600">
+                                        +&thinsp;€&thinsp;{{ number_format(abs($linkable->amount), 2, ',', '.') }}
+                                    </span>
+                                    <button
+                                        wire:click="linkRepayment({{ $linkable->id }})"
+                                        class="shrink-0 px-3 py-1.5 text-xs font-semibold text-white bg-emerald-500 hover:bg-emerald-600 rounded-lg transition-colors"
+                                    >
+                                        Link
+                                    </button>
+                                </div>
+                            @endforeach
+                        </div>
+                    @endif
+                </div>
+
+                <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 shrink-0">
+                    <button wire:click="closeLinkModal" class="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">
+                        Done
                     </button>
                 </div>
 

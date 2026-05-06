@@ -59,6 +59,10 @@ class Transactions extends Component
 
     public string $editNotes = '';
 
+    public bool $showLinkModal = false;
+
+    public ?int $linkingTransactionId = null;
+
     public bool $showImportModal = false;
 
     public string $importBank = '';
@@ -96,8 +100,9 @@ class Transactions extends Component
     #[Computed]
     public function transactions(): Collection
     {
-        return Transaction::with(['account', 'category'])
+        return Transaction::with(['account', 'category', 'repayments.account'])
             ->where('period_id', $this->period->id)
+            ->whereNull('parent_transaction_id')
             ->when($this->filterAccount !== '', fn ($q) => $q->where('account_id', (int) $this->filterAccount))
             ->when($this->uncategorizedOnly, fn ($q) => $q->whereNull('category_id'))
             ->when(! $this->uncategorizedOnly && $this->filterCategory !== '', fn ($q) => $q->where('category_id', (int) $this->filterCategory))
@@ -111,8 +116,21 @@ class Transactions extends Component
     public function uncategorizedCount(): int
     {
         return Transaction::where('period_id', $this->period->id)
+            ->whereNull('parent_transaction_id')
             ->whereNull('category_id')
             ->count();
+    }
+
+    #[Computed]
+    public function linkableTransactions(): Collection
+    {
+        return Transaction::with('account')
+            ->whereNull('parent_transaction_id')
+            ->where('amount', '>', 0)
+            ->when($this->linkingTransactionId, fn ($q) => $q->where('id', '!=', $this->linkingTransactionId))
+            ->orderByDesc('date')
+            ->orderByDesc('id')
+            ->get();
     }
 
     public function updatedUncategorizedOnly(): void
@@ -239,6 +257,41 @@ class Transactions extends Component
         $this->resetValidation();
     }
 
+    public function openLinkModal(int $transactionId): void
+    {
+        $this->linkingTransactionId = $transactionId;
+        unset($this->linkableTransactions);
+        $this->showLinkModal = true;
+    }
+
+    public function closeLinkModal(): void
+    {
+        $this->showLinkModal = false;
+        $this->linkingTransactionId = null;
+    }
+
+    public function linkRepayment(int $repaymentId): void
+    {
+        Transaction::findOrFail($repaymentId)->update([
+            'parent_transaction_id' => $this->linkingTransactionId,
+        ]);
+
+        unset($this->transactions, $this->linkableTransactions);
+
+        $this->dispatch('toast', type: 'success', message: 'Repayment linked.');
+    }
+
+    public function unlinkRepayment(int $repaymentId): void
+    {
+        Transaction::findOrFail($repaymentId)->update([
+            'parent_transaction_id' => null,
+        ]);
+
+        unset($this->transactions);
+
+        $this->dispatch('toast', type: 'success', message: 'Repayment unlinked.');
+    }
+
     public function openImportModal(): void
     {
         $this->reset(['importBank', 'importAccountId', 'importFile', 'importResult']);
@@ -290,6 +343,7 @@ class Transactions extends Component
             'categories' => $this->categories,
             'transactions' => $this->transactions,
             'uncategorizedCount' => $this->uncategorizedCount,
+            'linkableTransactions' => $this->linkableTransactions,
         ]);
     }
 }

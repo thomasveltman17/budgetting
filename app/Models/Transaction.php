@@ -4,11 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Transaction extends Model
 {
     protected $fillable = [
         'period_id',
+        'parent_transaction_id',
         'account_id',
         'category_id',
         'date',
@@ -37,5 +39,15 @@ class Transaction extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
+    }
+
+    public function repayments(): HasMany
+    {
+        return $this->hasMany(Transaction::class, 'parent_transaction_id');
+    }
+
+    public function parentTransaction(): BelongsTo
+    {
+        return $this->belongsTo(Transaction::class, 'parent_transaction_id');
     }
 }
