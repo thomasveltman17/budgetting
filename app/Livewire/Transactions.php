@@ -43,6 +43,22 @@ class Transactions extends Component
 
     public string $newNotes = '';
 
+    public bool $showEditModal = false;
+
+    public ?int $editTransactionId = null;
+
+    public string $editDate = '';
+
+    public string $editDescription = '';
+
+    public string $editAmount = '';
+
+    public string $editAccountId = '';
+
+    public ?string $editCategoryId = null;
+
+    public string $editNotes = '';
+
     public bool $showImportModal = false;
 
     public string $importBank = '';
@@ -166,6 +182,61 @@ class Transactions extends Component
         unset($this->transactions, $this->uncategorizedCount);
 
         $this->dispatch('toast', type: 'success', message: 'Transaction added.');
+    }
+
+    public function deleteSelected(array $ids): void
+    {
+        Transaction::whereIn('id', $ids)->delete();
+
+        unset($this->transactions, $this->uncategorizedCount);
+
+        $this->dispatch('toast', type: 'success', message: count($ids).' transaction(s) deleted.');
+    }
+
+    public function startEdit(int $transactionId): void
+    {
+        $transaction = Transaction::findOrFail($transactionId);
+        $this->editTransactionId = $transaction->id;
+        $this->editDate = $transaction->date->format('Y-m-d');
+        $this->editDescription = $transaction->description;
+        $this->editAmount = (string) $transaction->amount;
+        $this->editAccountId = (string) $transaction->account_id;
+        $this->editCategoryId = $transaction->category_id ? (string) $transaction->category_id : null;
+        $this->editNotes = $transaction->notes ?? '';
+        $this->resetValidation();
+        $this->showEditModal = true;
+    }
+
+    public function saveEdit(): void
+    {
+        $this->validate([
+            'editDate' => ['required', 'date'],
+            'editDescription' => ['required', 'string', 'max:255'],
+            'editAmount' => ['required', 'numeric'],
+            'editAccountId' => ['required', 'exists:accounts,id'],
+            'editCategoryId' => ['nullable', 'exists:categories,id'],
+            'editNotes' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        Transaction::findOrFail($this->editTransactionId)->update([
+            'date' => $this->editDate,
+            'description' => $this->editDescription,
+            'amount' => (float) $this->editAmount,
+            'account_id' => (int) $this->editAccountId,
+            'category_id' => $this->editCategoryId ? (int) $this->editCategoryId : null,
+            'notes' => $this->editNotes ?: null,
+        ]);
+
+        $this->showEditModal = false;
+        unset($this->transactions, $this->uncategorizedCount);
+
+        $this->dispatch('toast', type: 'success', message: 'Transaction updated.');
+    }
+
+    public function cancelEdit(): void
+    {
+        $this->showEditModal = false;
+        $this->resetValidation();
     }
 
     public function openImportModal(): void
