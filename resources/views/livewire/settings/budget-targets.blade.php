@@ -3,15 +3,15 @@
         Period: <span class="font-semibold text-gray-700">{{ $period->start_date->format('j M') }} – {{ $period->end_date->format('j M Y') }}</span>
     </p>
 
-    @if ($transactionalCategories->isEmpty())
+    @if ($categories->isEmpty())
         <div class="bg-white rounded-xl border border-gray-100 shadow-sm px-5 py-8 text-center">
-            <p class="text-sm text-gray-500">No active transactional categories.</p>
+            <p class="text-sm text-gray-500">No active categories.</p>
         </div>
     @else
         <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-            @foreach ($transactionalCategories as $index => $category)
+            @foreach ($categories as $index => $category)
                 @php
-                    $isLast = $index === $transactionalCategories->count() - 1;
+                    $isLast = $index === $categories->count() - 1;
                     $key = (string) $category->id;
                     $spent = $categorySpend[$category->id] ?? 0;
                     $target = $targetAmounts[$key] ?? '';
