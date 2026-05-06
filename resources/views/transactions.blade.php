@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Transactions – Veltiq Budget')
+@section('title', 'Transactions – Budgeting')
 
 @section('content')
     <livewire:transactions />
