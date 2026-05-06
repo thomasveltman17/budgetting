@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'History – Veltiq Budget')
+@section('title', 'History – Budgeting')
 
 @section('content')
     <div class="px-6 py-6">
