@@ -2,24 +2,132 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Project Overview
-
-Personal budgeting application. Tracks income and expenses across multiple accounts and categories, organized into budgeting periods.
-
 ## Stack
 
-- **Laravel 13** (framework), PHP 8.5, served via Laravel Herd
-- **MySQL** (production database; tests run against SQLite in-memory)
-- **Blade** + **Livewire 3** for interactive UI components
-- **Tailwind CSS v4** via Vite
+- **Backend:** Laravel 13, PHP 8.5, served via Laravel Herd, MySQL
+- **Frontend:** Blade + Livewire 3 + Tailwind CSS v4 (via Vite)
+- **Single user app** — no multi-tenancy, no registration flow. Auth is a simple login for one user.
+- Tests run against SQLite in-memory (`phpunit.xml`).
 
 > Livewire 3 and MySQL are planned but not yet installed. Switch `.env` `DB_CONNECTION` to `mysql` once MySQL is configured.
 
-## Domain Rules
+---
 
-- **Budgeting periods** run from the **15th of one month to the 14th of the next** (e.g., Apr 15 → May 14).
-- **Accounts:** Rabobank, Revolut, American Express
-- **Categories:** Fixed Costs, Long-term, Short-term, Savings, Investments
+## Business Logic
+
+### Budgeting Periods
+- A period runs from the **15th of a month** to the **14th of the next month** (e.g., "15 Apr 2026 – 14 May 2026")
+- Periods are auto-generated — when the app loads, ensure the current period exists
+- The current period is the one where `today` falls between `start_date` and `end_date`
+- All overviews and data are scoped to a period; users can switch to previous periods
+
+### Accounts (fixed, not user-configurable)
+- **Rabobank** — primarily fixed costs
+- **Revolut** — short-term and long-term spends
+- **American Express** — credit card, paid in full each period
+
+### Categories (defaults, user can add/rename/archive in Settings)
+1. Fixed Costs
+2. Long-term Spends
+3. Short-term Spends
+4. Savings
+5. Investments
+
+### Transactions
+- Fields: date, description, amount (positive = income/top-up, negative = expense), account, category, period
+- Can be imported via CSV (one parser per bank) or added manually
+- Categorization is always manual
+- Uncategorized transactions must be clearly flagged everywhere
+
+### AmEx Payoff Logic
+- At period end, group AmEx transactions by category:
+  - Short-term Spends → pay from Revolut short-term pocket
+  - Long-term Spends → pay from Revolut long-term pocket
+  - Fixed Costs → pay from Rabobank
+- Show a split summary with totals per category
+- "Mark as paid" button with date (defaults to 16th of the month, editable)
+- Available from the 1st of the month (user can pay early)
+
+### Budget Targets
+- Soft targets per category per period (no hard limits or alerts)
+- Shown as a visual progress bar: spent vs target
+- Configured in Settings
+
+### Net Worth Accounts (user-configured in Settings)
+- Types: savings, investment
+- Each has a name, type, current balance, and last-updated timestamp
+- Balance is manually updated; every update saves a snapshot (for growth history)
+- Dashboard shows all balances + total net worth
+
+---
+
+## Database Models
+
+### Period
+`id, start_date, end_date, is_current (bool), amex_paid_at (nullable datetime), timestamps`
+
+### Account
+`id, name (rabobank|revolut|amex), label, color (hex), timestamps`
+
+### Category
+`id, name, type (transactional|savings|investment), color (hex), is_archived (bool), sort_order, timestamps`
+
+### Transaction
+`id, period_id (FK), account_id (FK), category_id (FK nullable), date, description, amount (decimal 10,2), source (import|manual), import_hash (duplicate detection), notes (nullable), timestamps`
+
+### BudgetTarget
+`id, category_id (FK), period_id (FK), amount (decimal 10,2), timestamps`
+
+### NetWorthAccount
+`id, name, type (savings|investment), notes (nullable), is_active (bool), sort_order, timestamps`
+
+### NetWorthSnapshot
+`id, net_worth_account_id (FK), balance (decimal 12,2), recorded_at (datetime), timestamps`
+
+---
+
+## UI Layout
+- **Left sidebar:** fixed, dark background — app name "Veltiq Budget", current period label, nav: Dashboard, Transactions, History, Settings
+- **Main content:** light background, full width
+- **Color accent:** deep blue / slate
+- All pages scoped to a selected period (period switcher in sidebar or top bar)
+
+## Pages
+1. **Dashboard** — period summary cards, category progress bars, AmEx payoff split, net worth snapshot
+2. **Transactions** — full list grouped by date, inline categorization, filters
+3. **History** — previous periods overview
+4. **Settings** — categories, budget targets, net worth accounts
+
+---
+
+## Coding Conventions
+- Use Livewire 3 components for all interactive UI
+- Use Laravel Form Requests for validation
+- Use database seeders for default categories and accounts
+- Keep controllers thin — logic in service classes or Livewire components
+- Use Tailwind utility classes only — no custom CSS unless absolutely necessary
+- All amounts stored as `decimal(10,2)`, displayed with € symbol and Dutch number formatting (comma as decimal separator)
+
+## Auth
+
+Single-user session auth — no registration. Credentials live in `.env`:
+
+- `APP_USER_EMAIL` — login email
+- `APP_USER_PASSWORD` — bcrypt hash of the password (use `php artisan tinker --execute 'echo bcrypt("yourpassword");'` to generate)
+
+Default dev credentials: `admin@veltiq.test` / `password`
+
+Routes are protected by `RequireAuth` middleware (global web middleware, skips `/login`).
+
+## Seeding
+
+```bash
+# Reset DB and run base seed (accounts + categories)
+php artisan migrate:fresh --seed
+
+# Add realistic dummy transactions for two past periods + current period
+php artisan db:seed --class=DummyDataSeeder
+```
 
 ## Commands
 
