@@ -22,9 +22,18 @@ class Transactions extends Component
 {
     use WithFileUploads;
 
+    #[Url]
+    public string $search = '';
+
     public string $filterAccount = '';
 
     public string $filterCategory = '';
+
+    #[Url]
+    public string $filterType = '';
+
+    #[Url]
+    public bool $filterPendingReturn = false;
 
     #[Url]
     public bool $uncategorizedOnly = false;
@@ -103,13 +112,31 @@ class Transactions extends Component
         return Transaction::with(['account', 'category', 'repayments.account'])
             ->where('period_id', $this->period->id)
             ->whereNull('parent_transaction_id')
+            ->when($this->search !== '', fn ($q) => $q->where(fn ($q) => $q
+                ->where('description', 'like', '%'.$this->search.'%')
+                ->orWhere('notes', 'like', '%'.$this->search.'%')
+            ))
             ->when($this->filterAccount !== '', fn ($q) => $q->where('account_id', (int) $this->filterAccount))
+            ->when($this->filterType === 'expense', fn ($q) => $q->where('amount', '<', 0))
+            ->when($this->filterType === 'income', fn ($q) => $q->where('amount', '>', 0))
+            ->when($this->filterPendingReturn, fn ($q) => $q->where('is_pending_return', true))
             ->when($this->uncategorizedOnly, fn ($q) => $q->whereNull('category_id'))
             ->when(! $this->uncategorizedOnly && $this->filterCategory !== '', fn ($q) => $q->where('category_id', (int) $this->filterCategory))
             ->orderByDesc('date')
             ->orderByDesc('id')
             ->get()
             ->groupBy(fn ($t) => $t->date->format('Y-m-d'));
+    }
+
+    #[Computed]
+    public function hasActiveFilters(): bool
+    {
+        return $this->search !== ''
+            || $this->filterAccount !== ''
+            || $this->filterCategory !== ''
+            || $this->filterType !== ''
+            || $this->filterPendingReturn
+            || $this->uncategorizedOnly;
     }
 
     #[Computed]
@@ -138,6 +165,16 @@ class Transactions extends Component
         if ($this->uncategorizedOnly) {
             $this->filterCategory = '';
         }
+    }
+
+    public function clearFilters(): void
+    {
+        $this->search = '';
+        $this->filterAccount = '';
+        $this->filterCategory = '';
+        $this->filterType = '';
+        $this->filterPendingReturn = false;
+        $this->uncategorizedOnly = false;
     }
 
     public function updateCategory(int $transactionId, mixed $categoryId): void
@@ -292,6 +329,20 @@ class Transactions extends Component
         $this->dispatch('toast', type: 'success', message: 'Repayment unlinked.');
     }
 
+    public function togglePendingReturn(int $transactionId): void
+    {
+        $transaction = Transaction::findOrFail($transactionId);
+        $transaction->update(['is_pending_return' => ! $transaction->is_pending_return]);
+
+        unset($this->transactions);
+
+        $message = $transaction->is_pending_return
+            ? 'Marked as pending return — excluded from totals.'
+            : 'Pending return flag removed.';
+
+        $this->dispatch('toast', type: 'info', message: $message);
+    }
+
     public function openImportModal(): void
     {
         $this->reset(['importBank', 'importAccountId', 'importFile', 'importResult']);
@@ -344,6 +395,7 @@ class Transactions extends Component
             'transactions' => $this->transactions,
             'uncategorizedCount' => $this->uncategorizedCount,
             'linkableTransactions' => $this->linkableTransactions,
+            'hasActiveFilters' => $this->hasActiveFilters,
         ]);
     }
 }

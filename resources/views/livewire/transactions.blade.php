@@ -2,7 +2,34 @@
 
     {{-- ── Filter Bar ──────────────────────────────────────────────────── --}}
     <div class="sticky top-0 z-20 bg-white border-b border-gray-200 shadow-sm">
-        <div class="px-6 py-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+
+        {{-- Row 1: Search --}}
+        <div class="px-6 py-3 border-b border-gray-100">
+            <div class="relative">
+                <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                </svg>
+                <input
+                    type="text"
+                    wire:model.live.debounce.300ms="search"
+                    placeholder="Search by description or notes…"
+                    class="w-full pl-9 pr-9 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-900 placeholder-gray-400 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
+                >
+                @if ($search !== '')
+                    <button
+                        wire:click="$set('search', '')"
+                        class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                @endif
+            </div>
+        </div>
+
+        {{-- Row 2: Filters --}}
+        <div class="px-6 py-2.5 flex flex-wrap items-center gap-x-4 gap-y-2">
 
             {{-- Account filter --}}
             <div class="flex items-center gap-2">
@@ -32,6 +59,19 @@
 
             <div class="h-5 w-px bg-gray-200 hidden sm:block"></div>
 
+            {{-- Type filter --}}
+            <div class="flex items-center gap-2">
+                <span class="text-xs font-semibold text-gray-400 uppercase tracking-widest">Type</span>
+                <select wire:model.live="filterType"
+                        class="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none cursor-pointer">
+                    <option value="">All</option>
+                    <option value="expense">Expenses</option>
+                    <option value="income">Income</option>
+                </select>
+            </div>
+
+            <div class="h-5 w-px bg-gray-200 hidden sm:block"></div>
+
             {{-- Uncategorized only toggle --}}
             <label class="flex items-center gap-2 cursor-pointer select-none">
                 <div class="relative">
@@ -39,11 +79,34 @@
                     <div class="w-8 h-4 bg-gray-200 rounded-full peer-checked:bg-orange-400 transition-colors"></div>
                     <div class="absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full shadow-sm transition-transform peer-checked:translate-x-4"></div>
                 </div>
-                <span class="text-sm text-gray-600 font-medium">Uncategorized only</span>
+                <span class="text-sm text-gray-600 font-medium">Uncategorized</span>
             </label>
 
+            {{-- Pending return toggle --}}
+            <label class="flex items-center gap-2 cursor-pointer select-none">
+                <div class="relative">
+                    <input type="checkbox" wire:model.live="filterPendingReturn" class="sr-only peer">
+                    <div class="w-8 h-4 bg-gray-200 rounded-full peer-checked:bg-amber-400 transition-colors"></div>
+                    <div class="absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full shadow-sm transition-transform peer-checked:translate-x-4"></div>
+                </div>
+                <span class="text-sm text-gray-600 font-medium">Pending return</span>
+            </label>
+
+            {{-- Clear filters --}}
+            @if ($hasActiveFilters)
+                <button
+                    wire:click="clearFilters"
+                    class="ml-auto flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-gray-800 transition-colors"
+                >
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                    </svg>
+                    Clear filters
+                </button>
+            @endif
+
             {{-- Uncategorized warning badge --}}
-            @if ($uncategorizedCount > 0)
+            @if ($uncategorizedCount > 0 && !$hasActiveFilters)
                 <div class="ml-auto flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 border border-orange-200 rounded-lg">
                     <svg class="w-3.5 h-3.5 text-orange-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
@@ -125,9 +188,19 @@
 
                             {{-- Description + notes --}}
                             <div class="flex-1 min-w-0">
-                                <p class="text-sm font-medium text-gray-900 truncate leading-tight">
-                                    {{ $transaction->description }}
-                                </p>
+                                <div class="flex items-center gap-2 min-w-0">
+                                    <p class="text-sm font-medium text-gray-900 truncate leading-tight">
+                                        {{ $transaction->description }}
+                                    </p>
+                                    @if ($transaction->is_pending_return)
+                                        <span class="shrink-0 inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-300">
+                                            <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                                            </svg>
+                                            Pending return
+                                        </span>
+                                    @endif
+                                </div>
                                 @if ($transaction->notes)
                                     <p class="text-xs text-gray-400 truncate mt-0.5 leading-tight">
                                         {{ $transaction->notes }}
@@ -162,7 +235,7 @@
                             </span>
 
                             {{-- Amount (gross + net if repayments exist) --}}
-                            <div class="shrink-0 w-32 text-right">
+                            <div class="shrink-0 w-32 text-right {{ $transaction->is_pending_return ? 'opacity-40' : '' }}">
                                 <span class="text-sm font-bold tabular-nums {{ $isNegative ? 'text-red-500' : 'text-emerald-600' }}">
                                     {{ $isNegative ? '−' : '+' }}&thinsp;€&thinsp;{{ number_format(abs($transaction->amount), 2, ',', '.') }}
                                 </span>
@@ -183,6 +256,20 @@
                             >
                                 <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" />
+                                </svg>
+                            </button>
+
+                            {{-- Pending return toggle --}}
+                            <button
+                                wire:click="togglePendingReturn({{ $transaction->id }})"
+                                title="{{ $transaction->is_pending_return ? 'Clear pending return flag' : 'Mark as pending return' }}"
+                                class="shrink-0 p-1.5 rounded-lg transition-all
+                                    {{ $transaction->is_pending_return
+                                        ? 'opacity-100 text-amber-500 bg-amber-50'
+                                        : 'opacity-0 group-hover:opacity-100 text-gray-400 hover:text-amber-500 hover:bg-amber-50' }}"
+                            >
+                                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                                 </svg>
                             </button>
 
