@@ -100,6 +100,30 @@
                     @endif
                 </div>
             @endforeach
+
+            @php
+                $totalSpent = array_sum(array_values($categorySpend));
+                $totalBudget = collect($targetAmounts)->filter(fn ($v) => $v !== '')->sum(fn ($v) => (float) $v);
+                $totalPercentage = ($totalBudget > 0) ? round(($totalSpent / $totalBudget) * 100) : null;
+            @endphp
+            <div class="px-5 py-3 flex items-center gap-4" style="border-top: 1px solid var(--c-border); background-color: var(--c-footer);">
+                <span class="w-2.5 shrink-0"></span>
+                <span class="flex-1 text-xs font-bold uppercase tracking-widest" style="color: var(--c-text-3);">Total</span>
+                <div class="flex items-center gap-1 text-xs shrink-0">
+                    <span style="color: var(--c-text-3);">Spent</span>
+                    <span class="font-bold tabular-nums" style="color: var(--c-text-1);">€&thinsp;{{ number_format($totalSpent, 2, ',', '.') }}</span>
+                </div>
+                <div class="flex items-center gap-1.5 shrink-0">
+                    <span class="text-xs select-none" style="color: var(--c-text-3);">€</span>
+                    <span class="w-28 px-2.5 py-1.5 text-sm font-bold tabular-nums" style="color: var(--c-text-1);">{{ $totalBudget > 0 ? number_format($totalBudget, 2, ',', '.') : '—' }}</span>
+                </div>
+                @if ($totalPercentage !== null)
+                    <span class="text-xs font-bold tabular-nums w-10 text-right shrink-0" style="color: var(--c-brand);">{{ $totalPercentage }}%</span>
+                @else
+                    <span class="w-10 shrink-0"></span>
+                @endif
+                <span class="shrink-0 w-[52px]"></span>
+            </div>
         </div>
     @endif
 </div>
