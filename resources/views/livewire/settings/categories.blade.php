@@ -1,18 +1,19 @@
-<div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+<div class="rounded-2xl overflow-hidden" style="background-color: var(--c-card); border: 1px solid var(--c-border);">
 
     {{-- Category rows --}}
     @foreach ($categories as $index => $category)
         @php $isLast = $index === $categories->count() - 1; @endphp
 
-        <div class="flex items-center gap-3 px-4 py-3.5 {{ $isLast && $editingId !== $category->id ? '' : 'border-b border-gray-50' }}
-            {{ $category->is_archived ? 'opacity-60' : '' }}">
+        <div class="flex items-center gap-3 px-4 py-3.5 {{ $category->is_archived ? 'opacity-50' : '' }}"
+             style="{{ $isLast && $editingId !== $category->id ? '' : 'border-bottom: 1px solid var(--c-border-subtle);' }}">
 
             @if ($editingId === $category->id)
                 {{-- Edit mode --}}
                 <input
                     type="color"
                     wire:model="editColor"
-                    class="w-8 h-8 rounded-full border-2 border-gray-200 cursor-pointer shrink-0 p-0.5"
+                    class="w-8 h-8 rounded-full cursor-pointer shrink-0 p-0.5"
+                    style="border: 2px solid var(--c-border-medium); background: transparent;"
                     title="Pick color"
                 >
                 <input
@@ -20,51 +21,53 @@
                     wire:model="editName"
                     wire:keydown.enter="saveEdit({{ $category->id }})"
                     wire:keydown.escape="cancelEdit"
-                    class="flex-1 min-w-0 border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    class="th-input flex-1 min-w-0 rounded-lg px-3 py-1.5 text-sm"
+                    style="border-color: var(--c-brand);"
                     autofocus
                 >
                 @error('editName')
-                    <span class="text-xs text-red-500 shrink-0">{{ $message }}</span>
+                    <span class="text-xs shrink-0" style="color: var(--c-expense);">{{ $message }}</span>
                 @enderror
                 @error('editColor')
-                    <span class="text-xs text-red-500 shrink-0">{{ $message }}</span>
+                    <span class="text-xs shrink-0" style="color: var(--c-expense);">{{ $message }}</span>
                 @enderror
                 <div class="flex items-center gap-1.5 shrink-0">
                     <button
                         wire:click="saveEdit({{ $category->id }})"
-                        class="px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+                        class="px-3 py-1.5 text-xs font-semibold text-white rounded-lg transition-all"
+                        style="background: linear-gradient(135deg, #7C6FF7, #5B4FD4);"
                     >Save</button>
                     <button
                         wire:click="cancelEdit"
-                        class="px-3 py-1.5 text-xs font-medium text-gray-500 hover:text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                        class="th-btn-secondary px-3 py-1.5 text-xs font-medium rounded-lg transition-colors"
                     >Cancel</button>
                 </div>
 
             @else
                 {{-- View mode --}}
-                <span class="w-4 h-4 rounded-full shrink-0 ring-1 ring-black/10" style="background-color: {{ $category->color }}"></span>
+                <span class="w-4 h-4 rounded-full shrink-0" style="background-color: {{ $category->color }}; box-shadow: 0 0 0 1px rgba(0,0,0,0.2);"></span>
 
-                <span class="flex-1 text-sm font-medium text-gray-900 min-w-0 truncate">{{ $category->name }}</span>
+                <span class="flex-1 text-sm font-medium min-w-0 truncate" style="color: var(--c-text-1);">{{ $category->name }}</span>
 
-                <span class="text-xs font-medium px-2 py-0.5 rounded-full shrink-0
-                    {{ match($category->type) {
-                        'transactional' => 'bg-blue-50 text-blue-700',
-                        'savings'       => 'bg-emerald-50 text-emerald-700',
-                        'investment'    => 'bg-violet-50 text-violet-700',
-                        default         => 'bg-gray-100 text-gray-600',
+                <span class="text-xs font-medium px-2 py-0.5 rounded-full shrink-0"
+                    style="{{ match($category->type) {
+                        'transactional' => 'background-color: var(--c-rabo-bg); color: var(--c-rabo-text);',
+                        'savings'       => 'background-color: var(--c-income-bg); color: var(--c-income);',
+                        'investment'    => 'background-color: var(--c-revolut-bg); color: var(--c-revolut-text);',
+                        default         => 'background-color: var(--c-border); color: var(--c-text-2);',
                     } }}">
                     {{ ucfirst($category->type) }}
                 </span>
 
                 @if ($category->is_archived)
-                    <span class="text-xs font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full shrink-0">Archived</span>
+                    <span class="text-xs font-medium px-2 py-0.5 rounded-full shrink-0" style="background-color: var(--c-border); color: var(--c-text-3);">Archived</span>
                 @endif
 
                 {{-- Sort arrows --}}
                 <div class="flex items-center gap-0.5 shrink-0">
                     <button
                         wire:click="moveUp({{ $category->id }})"
-                        class="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors disabled:opacity-30"
+                        class="th-btn th-btn-ghost p-1 rounded disabled:opacity-30 disabled:pointer-events-none"
                         @if ($index === 0) disabled @endif
                         title="Move up"
                     >
@@ -74,7 +77,7 @@
                     </button>
                     <button
                         wire:click="moveDown({{ $category->id }})"
-                        class="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors disabled:opacity-30"
+                        class="th-btn th-btn-ghost p-1 rounded disabled:opacity-30 disabled:pointer-events-none"
                         @if ($isLast) disabled @endif
                         title="Move down"
                     >
@@ -88,7 +91,7 @@
                 <button
                     wire:click="toggleArchive({{ $category->id }})"
                     title="{{ $category->is_archived ? 'Unarchive' : 'Archive' }}"
-                    class="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors shrink-0"
+                    class="th-btn th-btn-ghost p-1.5 rounded-lg shrink-0"
                 >
                     @if ($category->is_archived)
                         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
@@ -104,7 +107,7 @@
                 {{-- Edit button --}}
                 <button
                     wire:click="startEdit({{ $category->id }})"
-                    class="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors shrink-0"
+                    class="th-btn th-btn-brand p-1.5 rounded-lg shrink-0"
                     title="Edit"
                 >
                     <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
@@ -116,13 +119,14 @@
     @endforeach
 
     {{-- Add category form --}}
-    <div class="px-4 py-4 bg-gray-50 border-t border-gray-100">
-        <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Add Category</p>
+    <div class="px-4 py-4" style="border-top: 1px solid var(--c-border); background-color: var(--c-footer);">
+        <p class="text-xs font-bold uppercase tracking-widest mb-3" style="color: var(--c-text-3);">Add Category</p>
         <div class="flex items-start gap-3">
             <input
                 type="color"
                 wire:model="newColor"
-                class="w-9 h-9 rounded-lg border-2 border-gray-200 cursor-pointer shrink-0 p-0.5 mt-0.5"
+                class="w-9 h-9 rounded-lg cursor-pointer shrink-0 p-0.5 mt-0.5"
+                style="border: 2px solid var(--c-border-medium); background: transparent;"
                 title="Pick color"
             >
             <div class="flex-1 grid grid-cols-2 gap-2">
@@ -131,16 +135,16 @@
                         type="text"
                         wire:model="newName"
                         placeholder="Category name"
-                        class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                        class="th-input w-full rounded-lg px-3 py-2 text-sm"
                     >
                     @error('newName')
-                        <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
+                        <p class="mt-1 text-xs" style="color: var(--c-expense);">{{ $message }}</p>
                     @enderror
                 </div>
                 <div>
                     <select
                         wire:model="newType"
-                        class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                        class="th-select w-full rounded-lg px-3 py-2 text-sm"
                     >
                         <option value="transactional">Transactional</option>
                         <option value="savings">Savings</option>
@@ -153,7 +157,8 @@
                 wire:loading.attr="disabled"
                 wire:loading.class="opacity-70 cursor-not-allowed"
                 wire:target="addCategory"
-                class="shrink-0 px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-sm"
+                class="shrink-0 px-4 py-2 text-sm font-semibold text-white rounded-lg transition-all"
+                style="background: linear-gradient(135deg, #7C6FF7, #5B4FD4);"
             >Add</button>
         </div>
     </div>
