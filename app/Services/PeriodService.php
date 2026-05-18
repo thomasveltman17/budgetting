@@ -22,9 +22,9 @@ class PeriodService
                 'end_date' => $end,
                 'is_current' => true,
             ]);
-
-            app(NetWorthPeriodService::class)->initializePeriodAccounts($period);
         }
+
+        app(NetWorthPeriodService::class)->initializePeriodAccounts($period);
 
         if (! $period->is_current) {
             Period::where('is_current', true)->update(['is_current' => false]);
@@ -41,6 +41,8 @@ class PeriodService
         if ($periodId) {
             $period = Period::find($periodId);
             if ($period) {
+                app(NetWorthPeriodService::class)->initializePeriodAccounts($period);
+
                 return $period;
             }
         }
