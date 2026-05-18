@@ -39,25 +39,25 @@ new class extends Component
 };
 ?>
 
-<div class="border-b border-slate-700/50" x-data="{ open: false }">
+<div x-data="{ open: false }" style="border-bottom: 1px solid var(--c-border);">
     <button
         @click="open = !open"
-        class="w-full flex items-center justify-between gap-2 px-4 py-3 text-left hover:bg-slate-800/50 transition-colors"
+        class="th-hover-row w-full flex items-center justify-between gap-2 px-4 py-3.5 text-left transition-colors"
     >
         <div class="min-w-0">
-            <p class="text-xs font-medium text-slate-500 uppercase tracking-wider mb-0.5">Period</p>
-            <p class="text-sm font-semibold text-slate-200 truncate">
+            <p class="text-xs font-semibold uppercase tracking-widest mb-1" style="color: var(--c-text-3); letter-spacing: 0.1em;">Period</p>
+            <p class="text-sm font-semibold truncate" style="color: var(--c-text-1);">
                 @if ($this->selectedPeriod)
                     {{ $this->selectedPeriod->start_date->format('j M') }} – {{ $this->selectedPeriod->end_date->format('j M') }}
                     @if ($this->selectedPeriod->is_current)
-                        <span class="text-xs font-normal text-slate-500 ml-1">current</span>
+                        <span class="text-xs font-normal ml-1" style="color: var(--c-brand);">now</span>
                     @endif
                 @else
                     —
                 @endif
             </p>
         </div>
-        <svg class="w-4 h-4 text-slate-500 shrink-0 transition-transform duration-150" :class="{ 'rotate-180': open }" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+        <svg class="w-3.5 h-3.5 shrink-0 transition-transform duration-150" :class="{ 'rotate-180': open }" style="color: var(--c-text-3);" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" d="m19 9-7 7-7-7" />
         </svg>
     </button>
@@ -74,11 +74,12 @@ new class extends Component
             @foreach ($this->periods as $period)
                 <button
                     wire:click="switchPeriod({{ $period->id }})"
-                    class="w-full text-left text-xs px-3 py-2 rounded-md transition-colors text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+                    class="th-hover-row w-full text-left text-xs px-3 py-2 rounded-lg transition-all"
+                    style="color: var(--c-text-2);"
                 >
                     {{ $period->start_date->format('j M') }} – {{ $period->end_date->format('j M') }}
                     @if ($period->is_current)
-                        <span class="ml-1 text-slate-500">current</span>
+                        <span class="ml-1" style="color: var(--c-brand);">now</span>
                     @endif
                 </button>
             @endforeach
