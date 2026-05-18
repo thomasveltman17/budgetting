@@ -1,7 +1,20 @@
 <div>
-    <p class="text-xs mb-4" style="color: var(--c-text-3);">
-        Period: <span class="font-semibold" style="color: var(--c-text-2);">{{ $period->start_date->format('j M') }} – {{ $period->end_date->format('j M Y') }}</span>
-    </p>
+    <div class="flex items-center justify-between mb-4">
+        <p class="text-xs" style="color: var(--c-text-3);">
+            Period: <span class="font-semibold" style="color: var(--c-text-2);">{{ $period->start_date->format('j M') }} – {{ $period->end_date->format('j M Y') }}</span>
+        </p>
+        <button
+            wire:click="importFromPreviousPeriod"
+            wire:loading.attr="disabled"
+            wire:loading.class="opacity-60"
+            class="text-xs font-semibold px-3 py-1.5 rounded-lg transition-all"
+            style="color: var(--c-brand); background-color: var(--c-brand-subtle, rgba(124,111,247,0.12));"
+            onmouseover="this.style.opacity='0.85'"
+            onmouseout="this.style.opacity='1'"
+        >
+            Import from last month
+        </button>
+    </div>
 
     @if ($categories->isEmpty())
         <div class="rounded-2xl px-5 py-8 text-center" style="background-color: var(--c-card); border: 1px solid var(--c-border);">

@@ -1,4 +1,9 @@
-<div class="rounded-2xl overflow-hidden" style="background-color: var(--c-card); border: 1px solid var(--c-border);">
+<div>
+    <p class="text-xs mb-4" style="color: var(--c-text-3);">
+        Period: <span class="font-semibold" style="color: var(--c-text-2);">{{ $period->start_date->format('j M') }} – {{ $period->end_date->format('j M Y') }}</span>
+    </p>
+
+    <div class="rounded-2xl overflow-hidden" style="background-color: var(--c-card); border: 1px solid var(--c-border);">
 
     @forelse ($netWorthAccounts as $index => $account)
         @php
@@ -10,6 +15,8 @@
                 'investment' => 'background-color: var(--c-revolut-bg); color: var(--c-revolut-text);',
                 default      => 'background-color: var(--c-border); color: var(--c-text-2);',
             };
+            $periodRecord = $account->netWorthAccountPeriods?->first();
+            $isArchivedForPeriod = $periodRecord?->is_archived ?? false;
         @endphp
 
         <div class="px-4 py-4 {{ ! $account->is_active ? 'opacity-50' : '' }}"
@@ -75,7 +82,10 @@
                                 {{ ucfirst($account->type) }}
                             </span>
                             @if (! $account->is_active)
-                                <span class="text-xs font-medium px-2 py-0.5 rounded-full" style="background-color: var(--c-border); color: var(--c-text-3);">Inactive</span>
+                                <span class="text-xs font-medium px-2 py-0.5 rounded-full" style="background-color: var(--c-border); color: var(--c-text-3);">Globally Inactive</span>
+                            @endif
+                            @if ($isArchivedForPeriod)
+                                <span class="text-xs font-medium px-2 py-0.5 rounded-full" style="background-color: rgba(245,158,11,0.15); color: #F59E0B;">Archived this period</span>
                             @endif
                         </div>
                         @if ($account->notes)
@@ -100,6 +110,20 @@
                     >
                         <div class="w-8 h-4 rounded-full transition-colors" style="{{ $account->is_active ? 'background-color: var(--c-brand);' : 'background-color: var(--c-deep);' }}"></div>
                         <div class="absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full shadow-sm transition-transform {{ $account->is_active ? 'translate-x-4' : '' }}"></div>
+                    </button>
+
+                    {{-- Archive for this period --}}
+                    <button
+                        wire:click="toggleArchiveForPeriod({{ $account->id }})"
+                        title="{{ $isArchivedForPeriod ? 'Unarchive for this period' : 'Archive for this period' }}"
+                        class="p-1.5 rounded-lg transition-colors shrink-0"
+                        style="{{ $isArchivedForPeriod ? 'color: #F59E0B; background-color: rgba(245,158,11,0.12);' : 'color: var(--c-text-3);' }}"
+                        onmouseover="if (!{{ $isArchivedForPeriod ? 'true' : 'false' }}) { this.style.color='#F59E0B'; this.style.backgroundColor='rgba(245,158,11,0.12)'; }"
+                        onmouseout="if (!{{ $isArchivedForPeriod ? 'true' : 'false' }}) { this.style.color='var(--c-text-3)'; this.style.backgroundColor=''; }"
+                    >
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5m6 4.5v2.25m3-6v6M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125V4.875c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z" />
+                        </svg>
                     </button>
 
                     {{-- Edit button --}}
@@ -215,4 +239,5 @@
         </div>
     </div>
 
+    </div>
 </div>
