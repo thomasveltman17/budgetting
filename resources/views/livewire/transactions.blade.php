@@ -1,5 +1,9 @@
 <div class="flex flex-col min-h-full" x-data="{ selectedIds: [] }">
 
+    <p class="text-xs mb-4 px-6 pt-4" style="color: var(--c-text-3);">
+        Period: <span class="font-semibold" style="color: var(--c-text-2);">{{ $period->start_date->format('j M') }} – {{ $period->end_date->format('j M Y') }}</span>
+    </p>
+
     {{-- ── Filter Bar ──────────────────────────────────────────────────── --}}
     <div class="sticky top-0 z-20" style="background-color: var(--c-card); border-bottom: 1px solid var(--c-border);">
 
