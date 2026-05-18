@@ -4,6 +4,9 @@ namespace App\Livewire\Settings;
 
 use App\Models\NetWorthAccount;
 use App\Models\NetWorthSnapshot;
+use App\Models\Period;
+use App\Services\NetWorthPeriodService;
+use App\Services\PeriodService;
 use Illuminate\Support\Collection;
 use Illuminate\View\View;
 use Livewire\Attributes\Computed;
@@ -28,11 +31,18 @@ class NetWorthAccounts extends Component
     public string $newNotes = '';
 
     #[Computed]
+    public function period(): Period
+    {
+        return app(PeriodService::class)->getSelectedPeriod();
+    }
+
+    #[Computed]
     public function netWorthAccounts(): Collection
     {
         return NetWorthAccount::orderBy('sort_order')
             ->withCount('snapshots')
             ->with('latestSnapshot')
+            ->with(['netWorthAccountPeriods' => fn ($q) => $q->where('period_id', $this->period->id)])
             ->get();
     }
 
@@ -124,6 +134,8 @@ class NetWorthAccounts extends Component
             ]);
         }
 
+        app(NetWorthPeriodService::class)->initializePeriodAccounts($this->period);
+
         $this->reset(['newName', 'newStartingBalance', 'newNotes']);
         $this->newType = 'savings';
         unset($this->netWorthAccounts);
@@ -131,10 +143,22 @@ class NetWorthAccounts extends Component
         $this->dispatch('toast', type: 'success', message: 'Account added.');
     }
 
+    public function toggleArchiveForPeriod(int $accountId): void
+    {
+        $account = NetWorthAccount::findOrFail($accountId);
+        $isNowArchived = app(NetWorthPeriodService::class)->toggleArchiveForPeriod($account, $this->period);
+
+        unset($this->netWorthAccounts);
+
+        $message = $isNowArchived ? 'Account archived for this period.' : 'Account unarchived for this period.';
+        $this->dispatch('toast', type: 'info', message: $message);
+    }
+
     public function render(): View
     {
         return view('livewire.settings.net-worth-accounts', [
             'netWorthAccounts' => $this->netWorthAccounts,
+            'period' => $this->period,
         ]);
     }
 }

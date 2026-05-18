@@ -196,8 +196,7 @@ class Dashboard extends Component
     #[Computed]
     public function netWorthAccounts(): Collection
     {
-        return NetWorthAccount::where('is_active', true)
-            ->orderBy('sort_order')
+        return $this->period->activeNetWorthAccounts()
             ->with('latestSnapshot')
             ->get();
     }

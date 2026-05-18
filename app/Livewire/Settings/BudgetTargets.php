@@ -78,6 +78,37 @@ class BudgetTargets extends Component
         unset($this->categorySpend);
     }
 
+    public function importFromPreviousPeriod(): void
+    {
+        $previousPeriod = Period::where('start_date', '<', $this->period->start_date)
+            ->orderByDesc('start_date')
+            ->first();
+
+        if (! $previousPeriod) {
+            $this->dispatch('toast', type: 'info', message: 'No previous period found.');
+
+            return;
+        }
+
+        $previousTargets = BudgetTarget::where('period_id', $previousPeriod->id)->get();
+
+        if ($previousTargets->isEmpty()) {
+            $this->dispatch('toast', type: 'info', message: 'No budget targets in previous period.');
+
+            return;
+        }
+
+        foreach ($previousTargets as $target) {
+            BudgetTarget::updateOrCreate(
+                ['category_id' => $target->category_id, 'period_id' => $this->period->id],
+                ['amount' => $target->amount]
+            );
+        }
+
+        $this->loadTargets();
+        $this->dispatch('toast', type: 'success', message: 'Budget targets imported from previous period.');
+    }
+
     public function render(): View
     {
         return view('livewire.settings.budget-targets', [

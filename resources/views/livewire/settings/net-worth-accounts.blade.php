@@ -1,16 +1,23 @@
-<div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+<div>
+    <p class="text-xs text-gray-500 mb-4">
+        Period: <span class="font-semibold text-gray-700">{{ $period->start_date->format('j M') }} – {{ $period->end_date->format('j M Y') }}</span>
+    </p>
 
-    @forelse ($netWorthAccounts as $index => $account)
-        @php
-            $isLast = $index === $netWorthAccounts->count() - 1;
-            $latestSnapshot = $account->latestSnapshot;
-            $balance = (float) ($latestSnapshot?->balance ?? 0);
-            $typeBadge = match ($account->type) {
-                'savings'    => 'bg-emerald-50 text-emerald-700',
-                'investment' => 'bg-violet-50 text-violet-700',
-                default      => 'bg-gray-100 text-gray-600',
-            };
-        @endphp
+    <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+
+        @forelse ($netWorthAccounts as $index => $account)
+            @php
+                $isLast = $index === $netWorthAccounts->count() - 1;
+                $latestSnapshot = $account->latestSnapshot;
+                $balance = (float) ($latestSnapshot?->balance ?? 0);
+                $typeBadge = match ($account->type) {
+                    'savings'    => 'bg-emerald-50 text-emerald-700',
+                    'investment' => 'bg-violet-50 text-violet-700',
+                    default      => 'bg-gray-100 text-gray-600',
+                };
+                $periodRecord = $account->netWorthAccountPeriods?->first();
+                $isArchivedForPeriod = $periodRecord?->is_archived ?? false;
+            @endphp
 
         <div class="px-4 py-4 {{ $isLast ? '' : 'border-b border-gray-50' }} {{ ! $account->is_active ? 'opacity-60' : '' }}">
 
@@ -72,7 +79,10 @@
                                 {{ ucfirst($account->type) }}
                             </span>
                             @if (! $account->is_active)
-                                <span class="text-xs font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">Inactive</span>
+                                <span class="text-xs font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">Globally Inactive</span>
+                            @endif
+                            @if ($isArchivedForPeriod)
+                                <span class="text-xs font-medium text-gray-500 bg-amber-100 px-2 py-0.5 rounded-full">Archived this period</span>
                             @endif
                         </div>
                         @if ($account->notes)
@@ -89,14 +99,15 @@
                         €&thinsp;{{ number_format($balance, 2, ',', '.') }}
                     </span>
 
-                    {{-- Active toggle --}}
+                    {{-- Archive for this period button --}}
                     <button
-                        wire:click="toggleActive({{ $account->id }})"
-                        title="{{ $account->is_active ? 'Deactivate' : 'Activate' }}"
-                        class="relative shrink-0"
+                        wire:click="toggleArchiveForPeriod({{ $account->id }})"
+                        title="{{ $isArchivedForPeriod ? 'Unarchive for this period' : 'Archive for this period' }}"
+                        class="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors shrink-0"
                     >
-                        <div class="w-8 h-4 {{ $account->is_active ? 'bg-blue-500' : 'bg-gray-200' }} rounded-full transition-colors"></div>
-                        <div class="absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full shadow-sm transition-transform {{ $account->is_active ? 'translate-x-4' : '' }}"></div>
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5m6 4.5v2.25m3-6v6M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125V4.875c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z" />
+                        </svg>
                     </button>
 
                     {{-- Edit button --}}
@@ -138,14 +149,14 @@
             @endif
         </div>
 
-    @empty
-        <div class="px-5 py-8 text-center">
-            <p class="text-sm text-gray-500">No accounts yet. Add one below.</p>
-        </div>
-    @endforelse
+        @empty
+            <div class="px-5 py-8 text-center">
+                <p class="text-sm text-gray-500">No accounts yet. Add one below.</p>
+            </div>
+        @endforelse
 
-    {{-- Add account form --}}
-    <div class="px-4 py-4 bg-gray-50 border-t border-gray-100">
+        {{-- Add account form --}}
+        <div class="px-4 py-4 bg-gray-50 border-t border-gray-100">
         <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Add Account</p>
         <div class="space-y-3">
             <div class="grid grid-cols-2 gap-3">
@@ -203,8 +214,8 @@
                     wire:target="addAccount"
                     class="px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-sm"
                 >Add Account</button>
+                </div>
             </div>
         </div>
     </div>
-
 </div>

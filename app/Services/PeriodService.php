@@ -22,6 +22,8 @@ class PeriodService
                 'end_date' => $end,
                 'is_current' => true,
             ]);
+
+            app(NetWorthPeriodService::class)->initializePeriodAccounts($period);
         }
 
         if (! $period->is_current) {

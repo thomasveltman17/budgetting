@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
@@ -28,5 +29,23 @@ class NetWorthAccount extends Model
     public function latestSnapshot(): HasOne
     {
         return $this->hasOne(NetWorthSnapshot::class)->latestOfMany('recorded_at');
+    }
+
+    public function periods(): BelongsToMany
+    {
+        return $this->belongsToMany(Period::class, 'net_worth_account_periods');
+    }
+
+    public function netWorthAccountPeriods(): HasMany
+    {
+        return $this->hasMany(NetWorthAccountPeriod::class);
+    }
+
+    public function isArchivedInPeriod(Period $period): bool
+    {
+        return $this->netWorthAccountPeriods()
+            ->where('period_id', $period->id)
+            ->where('is_archived', true)
+            ->exists();
     }
 }
