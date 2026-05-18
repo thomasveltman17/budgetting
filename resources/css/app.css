@@ -6,6 +6,177 @@
 @source '../**/*.js';
 
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+    --font-sans: 'DM Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 }
+
+/* ── Light mode (default) ────────────────────────────────────────────────── */
+:root {
+    --c-bg:              #F5F6FA;
+    --c-card:            #FFFFFF;
+    --c-elevated:        #F0F2F8;
+    --c-deep:            #E8EBF5;
+    --c-hover:           rgba(0,0,0,0.03);
+    --c-border:          rgba(0,0,0,0.07);
+    --c-border-subtle:   rgba(0,0,0,0.04);
+    --c-border-medium:   rgba(0,0,0,0.12);
+    --c-footer:          rgba(0,0,0,0.02);
+
+    --c-text-1:          #111827;
+    --c-text-2:          #4B5563;
+    --c-text-3:          #9CA3AF;
+
+    --c-brand:           #7C6FF7;
+    --c-brand-dim:       rgba(124,111,247,0.12);
+    --c-brand-hover:     rgba(124,111,247,0.2);
+    --c-brand-glow:      rgba(124,111,247,0.25);
+
+    --c-income:          #059669;
+    --c-income-bg:       rgba(5,150,105,0.1);
+    --c-expense:         #DC2626;
+    --c-expense-bg:      rgba(220,38,38,0.1);
+
+    --c-warn:            #D97706;
+    --c-warn-bg:         rgba(217,119,6,0.1);
+    --c-warn-border:     rgba(217,119,6,0.25);
+    --c-warn-text:       #92400E;
+
+    --c-pending-bg:      rgba(180,83,9,0.1);
+    --c-pending-border:  rgba(180,83,9,0.25);
+    --c-pending-text:    #92400E;
+
+    --c-rabo-bg:         rgba(59,130,246,0.1);
+    --c-rabo-text:       #1D4ED8;
+    --c-revolut-bg:      rgba(124,111,247,0.1);
+    --c-revolut-text:    #5B21B6;
+    --c-amex-bg:         rgba(5,150,105,0.1);
+    --c-amex-text:       #047857;
+
+    --c-success-bg:      rgba(5,150,105,0.1);
+    --c-success-text:    #047857;
+    --c-success-border:  rgba(5,150,105,0.2);
+    --c-error-bg:        rgba(220,38,38,0.1);
+    --c-error-text:      #DC2626;
+    --c-error-border:    rgba(220,38,38,0.2);
+}
+
+/* ── Dark mode ───────────────────────────────────────────────────────────── */
+.dark {
+    --c-bg:              #080B14;
+    --c-card:            #0F1320;
+    --c-elevated:        #161B2E;
+    --c-deep:            #1E2440;
+    --c-hover:           rgba(255,255,255,0.02);
+    --c-border:          rgba(255,255,255,0.06);
+    --c-border-subtle:   rgba(255,255,255,0.04);
+    --c-border-medium:   rgba(255,255,255,0.1);
+    --c-footer:          rgba(255,255,255,0.02);
+
+    --c-text-1:          #EEF0F8;
+    --c-text-2:          #8892B0;
+    --c-text-3:          #4A5578;
+
+    --c-brand:           #7C6FF7;
+    --c-brand-dim:       rgba(124,111,247,0.12);
+    --c-brand-hover:     rgba(124,111,247,0.2);
+    --c-brand-glow:      rgba(124,111,247,0.3);
+
+    --c-income:          #34D399;
+    --c-income-bg:       rgba(52,211,153,0.1);
+    --c-expense:         #F87171;
+    --c-expense-bg:      rgba(248,113,113,0.1);
+
+    --c-warn:            #FBBF24;
+    --c-warn-bg:         rgba(245,158,11,0.1);
+    --c-warn-border:     rgba(245,158,11,0.25);
+    --c-warn-text:       #FCD34D;
+
+    --c-pending-bg:      rgba(217,119,6,0.15);
+    --c-pending-border:  rgba(217,119,6,0.3);
+    --c-pending-text:    #FCD34D;
+
+    --c-rabo-bg:         rgba(96,165,250,0.12);
+    --c-rabo-text:       #60A5FA;
+    --c-revolut-bg:      rgba(167,139,250,0.12);
+    --c-revolut-text:    #A78BFA;
+    --c-amex-bg:         rgba(52,211,153,0.12);
+    --c-amex-text:       #34D399;
+
+    --c-success-bg:      rgba(52,211,153,0.1);
+    --c-success-text:    #34D399;
+    --c-success-border:  rgba(52,211,153,0.2);
+    --c-error-bg:        rgba(248,113,113,0.1);
+    --c-error-text:      #F87171;
+    --c-error-border:    rgba(248,113,113,0.2);
+}
+
+/* ── Date/number inputs color-scheme ────────────────────────────────────── */
+.dark input[type="date"],
+.dark input[type="number"],
+.dark input[type="text"],
+.dark textarea,
+.dark select { color-scheme: dark; }
+
+/* ── Theme-aware hover utilities ─────────────────────────────────────────── */
+.th-hover-row { transition: background-color 0.1s; }
+.th-hover-row:hover { background-color: var(--c-hover); }
+
+/* Icon-button base */
+.th-btn { border-radius: 0.5rem; padding: 0.375rem; transition: color 0.12s, background-color 0.12s; }
+.th-btn-ghost { color: var(--c-text-3); }
+.th-btn-ghost:hover { color: var(--c-text-2); background-color: var(--c-hover); }
+.th-btn-brand { color: var(--c-text-3); }
+.th-btn-brand:hover { color: var(--c-brand); background-color: var(--c-brand-dim); }
+.th-btn-danger { color: var(--c-text-3); }
+.th-btn-danger:hover { color: var(--c-expense); background-color: var(--c-expense-bg); }
+.th-btn-success { color: var(--c-text-3); }
+.th-btn-success:hover { color: var(--c-income); background-color: var(--c-income-bg); }
+.th-btn-warn { color: var(--c-text-3); }
+.th-btn-warn:hover { color: var(--c-warn); background-color: var(--c-pending-bg); }
+.th-btn-secondary { color: var(--c-text-2); background-color: var(--c-elevated); border: 1px solid var(--c-border); }
+.th-btn-secondary:hover { color: var(--c-text-1); background-color: var(--c-deep); }
+
+/* Nav item */
+.th-nav { color: var(--c-text-2); transition: color 0.12s, background-color 0.12s; }
+.th-nav:hover { color: var(--c-text-1); background-color: var(--c-hover); }
+
+/* Text links */
+.th-link { color: var(--c-brand); transition: opacity 0.15s; }
+.th-link:hover { opacity: 0.7; }
+
+/* Form inputs */
+.th-input {
+    background-color: var(--c-elevated);
+    border: 1px solid var(--c-border-medium);
+    color: var(--c-text-1);
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+.th-input::placeholder { color: var(--c-text-3); }
+.th-input:focus {
+    outline: none;
+    border-color: var(--c-brand);
+    box-shadow: 0 0 0 3px var(--c-brand-dim);
+}
+
+/* Selects */
+.th-select {
+    background-color: var(--c-elevated);
+    border: 1px solid var(--c-border-medium);
+    color: var(--c-text-2);
+    transition: border-color 0.15s;
+}
+.th-select:focus {
+    outline: none;
+    border-color: var(--c-brand);
+}
+
+/* Theme toggle icon visibility */
+.dark .icon-moon { display: block; }
+.dark .icon-sun  { display: none; }
+.icon-moon { display: none; }
+.icon-sun  { display: block; }
+
+.dark .theme-label-dark { display: inline; }
+.dark .theme-label-light { display: none; }
+.theme-label-dark { display: none; }
+.theme-label-light { display: inline; }
