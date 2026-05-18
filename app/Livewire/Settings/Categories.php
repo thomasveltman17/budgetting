@@ -16,6 +16,8 @@ class Categories extends Component
 
     public string $editColor = '#3b82f6';
 
+    public string $editType = 'transactional';
+
     public string $newName = '';
 
     public string $newColor = '#3b82f6';
@@ -34,6 +36,7 @@ class Categories extends Component
         $this->editingId = $categoryId;
         $this->editName = $category->name;
         $this->editColor = $category->color;
+        $this->editType = $category->type;
         $this->resetValidation();
     }
 
@@ -48,11 +51,13 @@ class Categories extends Component
         $this->validate([
             'editName' => ['required', 'string', 'max:100'],
             'editColor' => ['required', 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'editType' => ['required', 'in:transactional,savings,investment,income'],
         ]);
 
         Category::findOrFail($categoryId)->update([
             'name' => $this->editName,
             'color' => $this->editColor,
+            'type' => $this->editType,
         ]);
 
         $this->editingId = null;
@@ -106,7 +111,7 @@ class Categories extends Component
         $this->validate([
             'newName' => ['required', 'string', 'max:100'],
             'newColor' => ['required', 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
-            'newType' => ['required', 'in:transactional,savings,investment'],
+            'newType' => ['required', 'in:transactional,savings,investment,income'],
         ]);
 
         $maxSortOrder = Category::max('sort_order') ?? 0;

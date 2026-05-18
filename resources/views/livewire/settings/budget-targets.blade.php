@@ -28,6 +28,7 @@
                     $key = (string) $category->id;
                     $spent = $categorySpend[$category->id] ?? 0;
                     $target = $targetAmounts[$key] ?? '';
+                    $isIncomeCategory = $category->type === 'income';
                     $percentage = ($target !== '' && (float) $target > 0)
                         ? round(($spent / (float) $target) * 100)
                         : null;
@@ -48,11 +49,16 @@
                     };
                 @endphp
 
-                <div class="px-5 py-4" style="{{ $isLast ? '' : 'border-bottom: 1px solid var(--c-border-subtle);' }}">
+                <div class="px-5 py-4 {{ $isIncomeCategory ? 'opacity-60' : '' }}" style="{{ $isLast ? '' : 'border-bottom: 1px solid var(--c-border-subtle);' }}">
                     <div class="flex items-center gap-4">
                         <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background-color: {{ $category->color }}"></span>
 
-                        <span class="flex-1 text-sm font-semibold min-w-0 truncate" style="color: var(--c-text-1);">{{ $category->name }}</span>
+                        <span class="flex-1 text-sm font-semibold min-w-0 truncate" style="color: var(--c-text-1);">
+                            {{ $category->name }}
+                            @if ($isIncomeCategory)
+                                <span class="ml-1.5 text-xs font-normal" style="color: #D97706;">income</span>
+                            @endif
+                        </span>
 
                         <div class="flex items-center gap-1 text-xs shrink-0">
                             <span style="color: var(--c-text-3);">Spent</span>
@@ -102,8 +108,11 @@
             @endforeach
 
             @php
-                $totalSpent = array_sum(array_values($categorySpend));
-                $totalBudget = collect($targetAmounts)->filter(fn ($v) => $v !== '')->sum(fn ($v) => (float) $v);
+                $incomeIds = $categories->where('type', 'income')->pluck('id')->all();
+                $totalSpent = collect($categorySpend)->reject(fn ($_, $id) => in_array($id, $incomeIds))->sum();
+                $totalBudget = $categories->reject(fn ($c) => $c->type === 'income')
+                    ->map(fn ($c) => (float) ($targetAmounts[(string) $c->id] ?? 0))
+                    ->sum();
                 $totalPercentage = ($totalBudget > 0) ? round(($totalSpent / $totalBudget) * 100) : null;
             @endphp
             <div class="px-5 py-3 flex items-center gap-4" style="border-top: 1px solid var(--c-border); background-color: var(--c-footer);">

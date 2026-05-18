@@ -25,6 +25,12 @@
                     style="border-color: var(--c-brand);"
                     autofocus
                 >
+                <select wire:model="editType" class="th-select rounded-lg px-3 py-1.5 text-sm shrink-0">
+                    <option value="transactional">Transactional</option>
+                    <option value="savings">Savings</option>
+                    <option value="investment">Investment</option>
+                    <option value="income">Income</option>
+                </select>
                 @error('editName')
                     <span class="text-xs shrink-0" style="color: var(--c-expense);">{{ $message }}</span>
                 @enderror
@@ -54,6 +60,7 @@
                         'transactional' => 'background-color: var(--c-rabo-bg); color: var(--c-rabo-text);',
                         'savings'       => 'background-color: var(--c-income-bg); color: var(--c-income);',
                         'investment'    => 'background-color: var(--c-revolut-bg); color: var(--c-revolut-text);',
+                        'income'        => 'background-color: rgba(245,158,11,0.12); color: #D97706;',
                         default         => 'background-color: var(--c-border); color: var(--c-text-2);',
                     } }}">
                     {{ ucfirst($category->type) }}
@@ -149,6 +156,7 @@
                         <option value="transactional">Transactional</option>
                         <option value="savings">Savings</option>
                         <option value="investment">Investment</option>
+                        <option value="income">Income</option>
                     </select>
                 </div>
             </div>
