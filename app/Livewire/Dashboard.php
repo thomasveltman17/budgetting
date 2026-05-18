@@ -196,16 +196,23 @@ class Dashboard extends Component
     #[Computed]
     public function netWorthAccounts(): Collection
     {
+        $period = $this->period;
+
         return $this->period->activeNetWorthAccounts()
-            ->with('latestSnapshot')
-            ->get();
+            ->with('snapshots')
+            ->get()
+            ->map(function ($account) use ($period) {
+                $account->periodSnapshot = $account->snapshotForPeriod($period);
+
+                return $account;
+            });
     }
 
     #[Computed]
     public function netWorthTotal(): float
     {
         return (float) $this->netWorthAccounts
-            ->map(fn ($account) => (float) ($account->latestSnapshot?->balance ?? 0))
+            ->map(fn ($account) => (float) ($account->periodSnapshot?->balance ?? 0))
             ->sum();
     }
 
@@ -242,11 +249,10 @@ class Dashboard extends Component
 
         NetWorthAccount::findOrFail($accountId);
 
-        NetWorthSnapshot::create([
-            'net_worth_account_id' => $accountId,
-            'balance' => $parsedBalance,
-            'recorded_at' => now(),
-        ]);
+        NetWorthSnapshot::updateOrCreate(
+            ['net_worth_account_id' => $accountId, 'period_id' => $this->period->id],
+            ['balance' => $parsedBalance, 'recorded_at' => now()],
+        );
 
         unset($this->netWorthAccounts, $this->netWorthTotal);
 

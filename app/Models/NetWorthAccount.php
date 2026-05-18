@@ -31,6 +31,18 @@ class NetWorthAccount extends Model
         return $this->hasOne(NetWorthSnapshot::class)->latestOfMany('recorded_at');
     }
 
+    public function snapshotForPeriod(Period $period): ?NetWorthSnapshot
+    {
+        return $this->snapshots()
+            ->where('period_id', $period->id)
+            ->latest('recorded_at')
+            ->first()
+            ?? $this->snapshots()
+                ->whereDate('recorded_at', '<=', $period->end_date)
+                ->latest('recorded_at')
+                ->first();
+    }
+
     public function periods(): BelongsToMany
     {
         return $this->belongsToMany(Period::class, 'net_worth_account_periods');

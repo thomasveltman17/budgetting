@@ -39,11 +39,18 @@ class NetWorthAccounts extends Component
     #[Computed]
     public function netWorthAccounts(): Collection
     {
+        $period = $this->period;
+
         return NetWorthAccount::orderBy('sort_order')
             ->withCount('snapshots')
-            ->with('latestSnapshot')
-            ->with(['netWorthAccountPeriods' => fn ($q) => $q->where('period_id', $this->period->id)])
-            ->get();
+            ->with('snapshots')
+            ->with(['netWorthAccountPeriods' => fn ($q) => $q->where('period_id', $period->id)])
+            ->get()
+            ->map(function ($account) use ($period) {
+                $account->periodSnapshot = $account->snapshotForPeriod($period);
+
+                return $account;
+            });
     }
 
     public function startEdit(int $accountId): void

@@ -8,7 +8,7 @@
     @forelse ($netWorthAccounts as $index => $account)
         @php
             $isLast = $index === $netWorthAccounts->count() - 1;
-            $latestSnapshot = $account->latestSnapshot;
+            $latestSnapshot = $account->periodSnapshot;
             $balance = (float) ($latestSnapshot?->balance ?? 0);
             $typeBadgeStyle = match ($account->type) {
                 'savings'    => 'background-color: var(--c-income-bg); color: var(--c-income);',

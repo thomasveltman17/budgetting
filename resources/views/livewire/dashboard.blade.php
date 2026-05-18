@@ -237,7 +237,7 @@
             <div class="rounded-2xl overflow-hidden" style="background-color: var(--c-card); border: 1px solid var(--c-border);">
                 @foreach ($netWorthAccounts as $index => $nwAccount)
                     @php
-                        $latestSnapshot = $nwAccount->latestSnapshot;
+                        $latestSnapshot = $nwAccount->periodSnapshot;
                         $balance = (float) ($latestSnapshot?->balance ?? 0);
                         $isLast = $index === $netWorthAccounts->count() - 1;
                         $typeColorVar = match ($nwAccount->type) {

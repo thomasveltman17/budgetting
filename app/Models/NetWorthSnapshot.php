@@ -9,6 +9,7 @@ class NetWorthSnapshot extends Model
 {
     protected $fillable = [
         'net_worth_account_id',
+        'period_id',
         'balance',
         'recorded_at',
     ];
