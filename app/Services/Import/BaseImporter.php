@@ -43,6 +43,6 @@ abstract class BaseImporter
 
     protected function isDuplicate(string $hash): bool
     {
-        return Transaction::where('import_hash', $hash)->exists();
+        return Transaction::withTrashed()->where('import_hash', $hash)->exists();
     }
 }
