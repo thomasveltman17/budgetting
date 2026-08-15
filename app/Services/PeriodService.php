@@ -20,7 +20,7 @@ class PeriodService
             $period = Period::create([
                 'start_date' => $start,
                 'end_date' => $end,
-                'is_current' => true,
+                'is_current' => false,
             ]);
         }
 
