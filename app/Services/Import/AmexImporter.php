@@ -18,16 +18,18 @@ class AmexImporter extends BaseImporter
 
             $rows->each(function (array $row) use ($accountId, $result) {
                 try {
-                    $dateStr = $row['Date'] ?? null;
+                    $dateStr = $row['Datum'] ?? null;
                     if (! $dateStr) {
                         return;
                     }
 
-                    $date = Carbon::parse($dateStr);
-                    $description = trim($row['Description'] ?? 'Unknown');
+                    $date = Carbon::createFromFormat('m/d/Y', $dateStr);
+                    $description = trim($row['Omschrijving'] ?? 'Unknown');
 
-                    // AmEx exports expenses as positive — negate to store as negative
-                    $rawAmount = (float) ($row['Amount'] ?? 0);
+                    // AmEx exports expenses as positive, Dutch-formatted amounts
+                    // (comma = decimal separator, dot = thousands separator) — negate to store as negative
+                    $rawAmount = $row['Bedrag'] ?? '0';
+                    $rawAmount = (float) str_replace(',', '.', str_replace('.', '', $rawAmount));
                     $amount = -$rawAmount;
 
                     $hash = $this->generateHash($accountId, $date->toDateString(), (string) $amount, $description);
