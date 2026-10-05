@@ -4,13 +4,14 @@ namespace App\Services;
 
 use App\Models\Period;
 use Carbon\Carbon;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 
 class PeriodService
 {
     public function ensureCurrentPeriodExists(): Period
     {
-        ['start' => $start, 'end' => $end] = $this->calculateCurrentDates();
+        ['start' => $start, 'end' => $end] = $this->calculateDatesFor(Carbon::today());
 
         $period = Period::whereDate('start_date', $start)
             ->whereDate('end_date', $end)
@@ -20,7 +21,7 @@ class PeriodService
             $period = Period::create([
                 'start_date' => $start,
                 'end_date' => $end,
-                'is_current' => true,
+                'is_current' => false,
             ]);
         }
 
@@ -30,6 +31,28 @@ class PeriodService
         }
 
         return $period;
+    }
+
+    /**
+     * Find the period containing the given date, creating it if needed.
+     */
+    public function findOrCreateForDate(CarbonInterface $date): Period
+    {
+        $period = Period::whereDate('start_date', '<=', $date)
+            ->whereDate('end_date', '>=', $date)
+            ->first();
+
+        if ($period) {
+            return $period;
+        }
+
+        ['start' => $start, 'end' => $end] = $this->calculateDatesFor($date);
+
+        return Period::create([
+            'start_date' => $start,
+            'end_date' => $end,
+            'is_current' => false,
+        ]);
     }
 
     public function getSelectedPeriod(): Period
@@ -61,17 +84,21 @@ class PeriodService
         return $period->start_date->format('j M').' – '.$period->end_date->format('j M');
     }
 
-    /** @return array{start: string, end: string} */
-    private function calculateCurrentDates(): array
+    /**
+     * Periods run from the 15th up to and including the 14th of the next month.
+     *
+     * @return array{start: string, end: string}
+     */
+    private function calculateDatesFor(CarbonInterface $date): array
     {
-        $today = Carbon::today();
+        $monthStart = $date->copy()->startOfMonth();
 
-        if ($today->day >= 15) {
-            $start = $today->copy()->day(15);
-            $end = $today->copy()->addMonth()->day(14);
+        if ($date->day >= 15) {
+            $start = $monthStart->copy()->day(15);
+            $end = $monthStart->copy()->addMonthNoOverflow()->day(14);
         } else {
-            $start = $today->copy()->subMonth()->day(15);
-            $end = $today->copy()->day(14);
+            $start = $monthStart->copy()->subMonthNoOverflow()->day(15);
+            $end = $monthStart->copy()->day(14);
         }
 
         return ['start' => $start->toDateString(), 'end' => $end->toDateString()];
