@@ -39,47 +39,65 @@ new class extends Component
 };
 ?>
 
-<div x-data="{ open: false }" style="border-bottom: 1px solid var(--c-border);">
+@php
+    $selected = $this->selectedPeriod;
+    $length = $selected?->lengthInDays() ?? 0;
+    $elapsed = $selected?->elapsedDays() ?? 0;
+@endphp
+
+<div x-data="{ open: false }" @click.outside="open = false" class="text-rail-ink-2">
     <button
+        type="button"
         @click="open = !open"
-        class="th-hover-row w-full flex items-center justify-between gap-2 px-4 py-3.5 text-left transition-colors"
+        :aria-expanded="open"
+        class="group w-full px-5 py-4 text-left transition-colors hover:bg-white/[0.04]"
     >
-        <div class="min-w-0">
-            <p class="text-xs font-semibold uppercase tracking-widest mb-1" style="color: var(--c-text-3); letter-spacing: 0.1em;">Period</p>
-            <p class="text-sm font-semibold truncate" style="color: var(--c-text-1);">
-                @if ($this->selectedPeriod)
-                    {{ $this->selectedPeriod->start_date->format('j M') }} – {{ $this->selectedPeriod->end_date->format('j M') }}
-                    @if ($this->selectedPeriod->is_current)
-                        <span class="text-xs font-normal ml-1" style="color: var(--c-brand);">now</span>
-                    @endif
+        <span class="flex items-center justify-between gap-2 text-xs">
+            <span>Period</span>
+            <svg class="size-3.5 transition-transform duration-150" :class="open && 'rotate-180'" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m19 9-7 7-7-7" /></svg>
+        </span>
+
+        @if ($selected)
+            <span class="mt-1 block text-sm font-medium text-rail-ink">
+                {{ $selected->start_date->format('j M') }} – {{ $selected->end_date->format('j M Y') }}
+            </span>
+
+            <span class="mt-3 flex h-1 gap-[2px]" aria-hidden="true">
+                @for ($day = 1; $day <= $length; $day++)
+                    <span class="flex-1 rounded-[1px] {{ $day <= $elapsed ? 'bg-rail-ink/70' : 'bg-white/10' }}"></span>
+                @endfor
+            </span>
+
+            <span class="mt-2 block font-mono text-[0.6875rem] tracking-tight">
+                @if ($elapsed === 0)
+                    Starts {{ $selected->start_date->format('j M') }}
+                @elseif ($elapsed < $length)
+                    Day {{ $elapsed }} of {{ $length }}
                 @else
-                    —
+                    Closed · {{ $length }} days
                 @endif
-            </p>
-        </div>
-        <svg class="w-3.5 h-3.5 shrink-0 transition-transform duration-150" :class="{ 'rotate-180': open }" style="color: var(--c-text-3);" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" d="m19 9-7 7-7-7" />
-        </svg>
+            </span>
+        @else
+            <span class="mt-1 block text-sm text-rail-ink">—</span>
+        @endif
     </button>
 
     @if ($this->periods->isNotEmpty())
         <div
             x-show="open"
-            x-transition:enter="transition ease-out duration-100"
-            x-transition:enter-start="opacity-0 -translate-y-1"
-            x-transition:enter-end="opacity-100 translate-y-0"
-            @click.outside="open = false"
-            class="pb-2 px-2"
+            x-cloak
+            x-transition.opacity.duration.100ms
+            class="border-t border-rail-line px-2 py-2"
         >
             @foreach ($this->periods as $period)
                 <button
+                    type="button"
                     wire:click="switchPeriod({{ $period->id }})"
-                    class="th-hover-row w-full text-left text-xs px-3 py-2 rounded-lg transition-all"
-                    style="color: var(--c-text-2);"
+                    class="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-left text-[0.8125rem] transition-colors hover:bg-white/5 hover:text-rail-ink"
                 >
-                    {{ $period->start_date->format('j M') }} – {{ $period->end_date->format('j M') }}
+                    <span>{{ $period->start_date->format('j M') }} – {{ $period->end_date->format('j M Y') }}</span>
                     @if ($period->is_current)
-                        <span class="ml-1" style="color: var(--c-brand);">now</span>
+                        <span class="text-[0.6875rem] text-rail-ink">Current</span>
                     @endif
                 </button>
             @endforeach
