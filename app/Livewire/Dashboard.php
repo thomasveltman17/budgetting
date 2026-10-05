@@ -10,6 +10,8 @@ use App\Models\NetWorthSnapshot;
 use App\Models\Period;
 use App\Models\Transaction;
 use App\Services\PeriodService;
+use Carbon\CarbonInterface;
+use Carbon\CarbonPeriod;
 use Illuminate\Support\Collection;
 use Illuminate\View\View;
 use Livewire\Attributes\Computed;
@@ -60,6 +62,39 @@ class Dashboard extends Component
             'expenses' => $expenses,
             'net' => $income - $expenses,
         ];
+    }
+
+    /**
+     * Money spent and received on each day of the selected period, oldest first.
+     * Spending is net of linked repayments, matching the period totals.
+     *
+     * @return Collection<int, array{date: CarbonInterface, spent: float, received: float}>
+     */
+    #[Computed]
+    public function dailyActivity(): Collection
+    {
+        $transactionsByDay = Transaction::where('period_id', $this->period->id)
+            ->whereNull('parent_transaction_id')
+            ->where('is_pending_return', false)
+            ->with('repayments')
+            ->get()
+            ->groupBy(fn ($t) => $t->date->toDateString());
+
+        return collect(CarbonPeriod::create($this->period->start_date, $this->period->end_date))
+            ->map(function ($day) use ($transactionsByDay) {
+                $transactions = $transactionsByDay->get($day->toDateString(), collect());
+
+                $netSpent = (float) $transactions
+                    ->where('amount', '<', 0)
+                    ->sum(fn ($t) => $t->amount + $t->repayments->sum('amount'));
+
+                return [
+                    'date' => $day,
+                    'spent' => max(0.0, -$netSpent),
+                    'received' => (float) $transactions->where('amount', '>', 0)->sum('amount'),
+                ];
+            })
+            ->values();
     }
 
     #[Computed]
@@ -260,6 +295,7 @@ class Dashboard extends Component
             'period' => $this->period,
             'uncategorizedCount' => $this->uncategorizedCount,
             'periodOverview' => $this->periodOverview,
+            'dailyActivity' => $this->dailyActivity,
             'accountSummaries' => $this->accountSummaries,
             'categoryProgress' => $this->categoryProgress,
             'amexSplit' => $this->amexSplit,
