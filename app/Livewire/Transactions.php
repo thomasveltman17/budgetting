@@ -13,6 +13,7 @@ use App\Services\PeriodService;
 use Illuminate\Support\Collection;
 use Illuminate\View\View;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\Renderless;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
@@ -186,6 +187,18 @@ class Transactions extends Component
         ]);
 
         unset($this->transactions, $this->uncategorizedCount);
+    }
+
+    #[Renderless]
+    public function updateNote(int $transactionId, ?string $note): void
+    {
+        $note = trim((string) $note);
+
+        validator(['note' => $note], ['note' => ['nullable', 'string', 'max:1000']])->validate();
+
+        Transaction::findOrFail($transactionId)->update([
+            'notes' => $note !== '' ? $note : null,
+        ]);
     }
 
     public function deleteTransaction(int $transactionId): void

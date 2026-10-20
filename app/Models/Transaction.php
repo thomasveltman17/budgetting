@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -54,5 +55,24 @@ class Transaction extends Model
     public function parentTransaction(): BelongsTo
     {
         return $this->belongsTo(Transaction::class, 'parent_transaction_id');
+    }
+
+    /**
+     * The counterparty as a person would name it, taken from the bank's
+     * description: "To Kruidvat" becomes "Kruidvat", "BCK*AH to go 5865 —
+     * UTRECHT" becomes "AH to go 5865", "Booking.com*AMSTERDAM" becomes
+     * "Booking.com".
+     */
+    protected function merchantName(): Attribute
+    {
+        return Attribute::get(function (): string {
+            $name = trim(explode(' — ', (string) $this->description)[0]);
+            $name = preg_replace('/\s+via\s+.*$/i', '', $name);
+            $name = preg_replace('/^(to|from)\s+/i', '', $name);
+            $name = preg_replace('/^[a-z]{2,6}\s?\*\s*/i', '', $name);
+            $name = trim(explode('*', $name)[0]);
+
+            return $name !== '' ? $name : (string) $this->description;
+        });
     }
 }

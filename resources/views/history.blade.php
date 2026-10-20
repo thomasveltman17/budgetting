@@ -3,146 +3,145 @@
 @section('title', 'History – Veltiq Budget')
 
 @section('content')
-    <div class="px-6 py-8">
+    @php
+        $largestPeriodSpend = max(1, (float) $periods->max('totalSpent'));
+        $columns = 'grid-cols-[minmax(0,1fr)_auto_1rem] md:grid-cols-[minmax(10rem,1.2fr)_5.5rem_repeat(3,minmax(0,7rem))_minmax(8rem,1fr)_6.5rem_1rem]';
+        $accountColumns = ['rabobank' => 'Rabobank', 'revolut' => 'Revolut', 'amex' => 'Amex'];
+    @endphp
 
-        @if ($periods->isEmpty())
-            <div class="flex flex-col items-center justify-center py-24 text-center">
-                <div class="w-14 h-14 rounded-2xl flex items-center justify-center mb-4" style="background-color: var(--c-elevated); border: 1px solid var(--c-border);">
-                    <svg class="w-6 h-6" style="color: var(--c-text-3);" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                    </svg>
+    <div class="mx-auto max-w-[1180px] pb-16">
+        <x-page-header title="History">
+            <x-slot:meta>
+                {{ $periods->count() }} closed {{ Str::plural('period', $periods->count()) }} · spending per period, newest first
+            </x-slot:meta>
+        </x-page-header>
+
+        <div class="px-5 sm:px-8">
+            @if ($periods->isEmpty())
+                <div class="rounded-xl border border-dashed border-line-strong px-6 py-20 text-center">
+                    <p class="text-sm font-medium text-ink">No closed periods yet</p>
+                    <p class="mt-1 text-sm text-ink-3">A period closes on the 14th. It appears here after that.</p>
                 </div>
-                <p class="text-sm font-semibold" style="color: var(--c-text-2);">No past periods yet</p>
-                <p class="text-xs mt-1" style="color: var(--c-text-3);">Previous periods will appear here once the current one rolls over.</p>
-            </div>
-        @else
-            <div class="space-y-4 max-w-4xl">
-                @foreach ($periods as $item)
-                    @php
-                        $period = $item['period'];
-                        $label = $period->start_date->format('j M') . ' – ' . $period->end_date->format('j M Y');
-                    @endphp
+            @else
+                <div class="rounded-xl border border-line bg-surface">
 
-                    <div class="rounded-2xl overflow-hidden" style="background-color: var(--c-card); border: 1px solid var(--c-border);">
-
-                        {{-- Card header --}}
-                        <div class="flex items-center justify-between px-5 py-4" style="border-bottom: 1px solid var(--c-border);">
-                            <div class="flex items-center gap-3">
-                                <span class="text-sm font-bold" style="color: var(--c-text-1);">{{ $label }}</span>
-                                <span class="text-xs tabular-nums" style="color: var(--c-text-3);">{{ $item['transactionCount'] }} transactions</span>
-                            </div>
-
-                            <div class="flex items-center gap-3">
-                                @if ($period->amex_paid_at)
-                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold" style="background-color: var(--c-success-bg); color: var(--c-income); border: 1px solid var(--c-success-border);">
-                                        <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                                        </svg>
-                                        AmEx paid {{ $period->amex_paid_at->format('j M') }}
-                                    </span>
-                                @else
-                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium" style="background-color: var(--c-border); color: var(--c-text-3);">
-                                        AmEx not recorded
-                                    </span>
-                                @endif
-
-                                <a
-                                    href="{{ route('history.period.transactions', $period) }}"
-                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors"
-                                    style="background-color: var(--c-brand-dim); color: var(--c-brand);"
-                                    onmouseover="this.style.backgroundColor='rgba(124,111,247,0.2)'"
-                                    onmouseout="this.style.backgroundColor='rgba(124,111,247,0.12)'"
-                                >
-                                    View transactions
-                                    <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
-                                    </svg>
-                                </a>
-                            </div>
-                        </div>
-
-                        {{-- Card body: two columns --}}
-                        <div class="grid grid-cols-2">
-
-                            {{-- Account breakdown --}}
-                            <div class="px-5 py-4" style="border-right: 1px solid var(--c-border-subtle);">
-                                <p class="text-xs font-bold uppercase tracking-widest mb-3" style="color: var(--c-text-3);">By Account</p>
-
-                                @if ($item['accountSummaries']->isEmpty())
-                                    <p class="text-xs" style="color: var(--c-text-3);">No expenses</p>
-                                @else
-                                    <div class="space-y-2">
-                                        @foreach ($item['accountSummaries'] as $account)
-                                            @php
-                                                $badgeStyle = match ($account['name']) {
-                                                    'rabobank' => 'background-color: var(--c-rabo-bg); color: var(--c-rabo-text);',
-                                                    'revolut'  => 'background-color: var(--c-revolut-bg); color: var(--c-revolut-text);',
-                                                    'amex'     => 'background-color: var(--c-amex-bg); color: var(--c-amex-text);',
-                                                    default    => 'background-color: var(--c-border); color: var(--c-text-2);',
-                                                };
-                                            @endphp
-                                            <div class="flex items-center justify-between gap-3">
-                                                <span class="text-xs font-semibold px-2 py-0.5 rounded-full" style="{{ $badgeStyle }}">
-                                                    {{ $account['label'] }}
-                                                </span>
-                                                <span class="text-sm font-semibold tabular-nums" style="color: var(--c-text-1);">
-                                                    €&thinsp;{{ number_format($account['spent'], 2, ',', '.') }}
-                                                </span>
-                                            </div>
-                                        @endforeach
-                                    </div>
-                                @endif
-                            </div>
-
-                            {{-- Category breakdown --}}
-                            <div class="px-5 py-4">
-                                <p class="text-xs font-bold uppercase tracking-widest mb-3" style="color: var(--c-text-3);">By Category</p>
-
-                                @if ($item['categorySummaries']->isEmpty() && $item['uncategorizedSpent'] == 0)
-                                    <p class="text-xs" style="color: var(--c-text-3);">No expenses</p>
-                                @else
-                                    <div class="space-y-2">
-                                        @foreach ($item['categorySummaries'] as $cat)
-                                            <div class="flex items-center justify-between gap-3">
-                                                <div class="flex items-center gap-2 min-w-0">
-                                                    <span class="w-2 h-2 rounded-full shrink-0" style="background-color: {{ $cat['color'] }}"></span>
-                                                    <span class="text-xs truncate" style="color: var(--c-text-2);">{{ $cat['name'] }}</span>
-                                                </div>
-                                                <span class="text-sm font-semibold tabular-nums shrink-0" style="color: var(--c-text-1);">
-                                                    €&thinsp;{{ number_format($cat['spent'], 2, ',', '.') }}
-                                                </span>
-                                            </div>
-                                        @endforeach
-
-                                        @if ($item['uncategorizedSpent'] > 0)
-                                            <div class="flex items-center justify-between gap-3">
-                                                <div class="flex items-center gap-2 min-w-0">
-                                                    <span class="w-2 h-2 rounded-full shrink-0" style="background-color: var(--c-warn);"></span>
-                                                    <span class="text-xs truncate" style="color: var(--c-pending-text);">Uncategorized</span>
-                                                </div>
-                                                <span class="text-sm font-semibold tabular-nums shrink-0" style="color: var(--c-pending-text);">
-                                                    €&thinsp;{{ number_format($item['uncategorizedSpent'], 2, ',', '.') }}
-                                                </span>
-                                            </div>
-                                        @endif
-                                    </div>
-                                @endif
-                            </div>
-
-                        </div>
-
-                        {{-- Card footer: total --}}
-                        <div class="flex items-center justify-between px-5 py-3" style="background-color: var(--c-footer); border-top: 1px solid var(--c-border);">
-                            <span class="text-xs font-semibold" style="color: var(--c-text-3);">Total spent</span>
-                            <span class="text-sm font-bold tabular-nums" style="color: var(--c-expense);">
-                                €&thinsp;{{ number_format($item['totalSpent'], 2, ',', '.') }}
+                    {{-- Column headings --}}
+                    <div class="hidden gap-x-4 border-b border-line px-5 py-2.5 text-xs text-ink-3 md:grid {{ $columns }}">
+                        <span>Period</span>
+                        <span class="text-right">Transactions</span>
+                        @foreach ($accountColumns as $name => $label)
+                            <span class="flex items-center justify-end gap-1.5">
+                                <x-provider-logo :provider="$name" size="xs" />
+                                {{ $label }}
                             </span>
-                        </div>
-
+                        @endforeach
+                        <span class="text-right">Total spent</span>
+                        <span class="text-right">AmEx paid</span>
+                        <span></span>
                     </div>
-                @endforeach
-            </div>
-        @endif
 
+                    @foreach ($periods as $item)
+                        @php
+                            $period = $item['period'];
+                            $largestCategorySpend = max(1, (float) $item['categorySummaries']->max('spent'), (float) $item['uncategorizedSpent']);
+                        @endphp
+
+                        <details class="group border-b border-line last:border-b-0">
+                            <summary class="grid list-none items-center gap-x-4 px-5 py-3.5 transition-colors group-open:bg-sunken/40 group-last:rounded-b-xl hover:bg-sunken/40 [&::-webkit-details-marker]:hidden {{ $columns }} {{ $loop->first ? 'max-md:rounded-t-xl' : '' }}">
+                                <span class="min-w-0">
+                                    <span class="block truncate text-sm text-ink">{{ $period->start_date->format('j M') }} – {{ $period->end_date->format('j M Y') }}</span>
+                                    <span class="mt-0.5 block text-xs text-ink-3 md:hidden">{{ $item['transactionCount'] }} transactions</span>
+                                </span>
+
+                                <span class="hidden text-right text-sm text-ink-3 tabular-nums md:block">{{ $item['transactionCount'] }}</span>
+
+                                @foreach ($accountColumns as $name => $label)
+                                    @php $accountSpend = $item['accountSummaries']->firstWhere('name', $name)['spent'] ?? 0; @endphp
+                                    <span class="hidden text-right text-sm tabular-nums md:block {{ $accountSpend > 0 ? 'text-ink-2' : 'text-ink-3' }}">
+                                        @if ($accountSpend > 0)<x-money :amount="$accountSpend" />@else — @endif
+                                    </span>
+                                @endforeach
+
+                                <span class="flex flex-col items-end gap-1.5">
+                                    <x-money :amount="$item['totalSpent']" class="text-sm font-medium tabular-nums text-ink" />
+                                    <span class="block h-1 w-24 rounded-full bg-sunken" aria-hidden="true">
+                                        <span class="block h-full rounded-full bg-bar" style="width: {{ round($item['totalSpent'] / $largestPeriodSpend * 100, 1) }}%"></span>
+                                    </span>
+                                </span>
+
+                                <span class="hidden text-right text-[0.8125rem] md:block">
+                                    @if ($period->amex_paid_at)
+                                        <span class="text-credit">{{ $period->amex_paid_at->format('j M') }}</span>
+                                    @else
+                                        <span class="text-ink-3">Not recorded</span>
+                                    @endif
+                                </span>
+
+                                <svg class="size-4 text-ink-3 transition-transform group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
+                            </summary>
+
+                            <div class="grid gap-8 border-t border-line px-5 py-5 md:grid-cols-[minmax(0,1fr)_16rem]">
+                                <div>
+                                    <h3 class="mb-3 text-xs text-ink-3">Spent per category</h3>
+                                    @if ($item['categorySummaries']->isEmpty() && $item['uncategorizedSpent'] == 0)
+                                        <p class="text-sm text-ink-3">No spending in this period.</p>
+                                    @else
+                                        <ul class="space-y-2">
+                                            @foreach ($item['categorySummaries'] as $category)
+                                                <li class="grid grid-cols-[minmax(0,10rem)_minmax(0,1fr)_6.5rem] items-center gap-3 text-sm">
+                                                    <span class="flex min-w-0 items-center gap-2">
+                                                        <span class="size-2 shrink-0 rounded-[2px]" style="background-color: {{ $category['color'] }}"></span>
+                                                        <span class="truncate text-ink-2">{{ $category['name'] }}</span>
+                                                    </span>
+                                                    <span class="h-1 rounded-full bg-sunken" aria-hidden="true">
+                                                        <span class="block h-full rounded-full bg-bar" style="width: {{ round($category['spent'] / $largestCategorySpend * 100, 1) }}%"></span>
+                                                    </span>
+                                                    <x-money :amount="$category['spent']" class="text-right tabular-nums text-ink" />
+                                                </li>
+                                            @endforeach
+                                            @if ($item['uncategorizedSpent'] > 0)
+                                                <li class="grid grid-cols-[minmax(0,10rem)_minmax(0,1fr)_6.5rem] items-center gap-3 text-sm">
+                                                    <span class="flex min-w-0 items-center gap-2">
+                                                        <span class="size-2 shrink-0 rounded-[2px] ring-[1.5px] ring-attention ring-inset"></span>
+                                                        <span class="truncate text-attention">Uncategorized</span>
+                                                    </span>
+                                                    <span class="h-1 rounded-full bg-sunken" aria-hidden="true">
+                                                        <span class="block h-full rounded-full bg-attention/60" style="width: {{ round($item['uncategorizedSpent'] / $largestCategorySpend * 100, 1) }}%"></span>
+                                                    </span>
+                                                    <x-money :amount="$item['uncategorizedSpent']" class="text-right tabular-nums text-attention" />
+                                                </li>
+                                            @endif
+                                        </ul>
+                                    @endif
+                                </div>
+
+                                <div class="space-y-5">
+                                    <div class="md:hidden">
+                                        <h3 class="mb-3 text-xs text-ink-3">Spent per account</h3>
+                                        <ul class="space-y-2 text-sm">
+                                            @foreach ($item['accountSummaries'] as $account)
+                                                <li class="flex justify-between gap-3">
+                                                    <span class="flex items-center gap-2 text-ink-2"><x-provider-logo :provider="$account['name']" size="xs" />{{ $account['label'] }}</span>
+                                                    <x-money :amount="$account['spent']" class="tabular-nums text-ink" />
+                                                </li>
+                                            @endforeach
+                                            <li class="flex justify-between gap-3">
+                                                <span class="text-ink-2">AmEx paid</span>
+                                                <span class="{{ $period->amex_paid_at ? 'text-credit' : 'text-ink-3' }}">{{ $period->amex_paid_at?->format('j M Y') ?? 'Not recorded' }}</span>
+                                            </li>
+                                        </ul>
+                                    </div>
+
+                                    <a href="{{ route('history.period.transactions', $period) }}" class="btn btn-secondary w-full">
+                                        Open transactions
+                                        <svg class="size-4 text-ink-3" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" /></svg>
+                                    </a>
+                                </div>
+                            </div>
+                        </details>
+                    @endforeach
+                </div>
+            @endif
+        </div>
     </div>
 @endsection
