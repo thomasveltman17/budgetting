@@ -158,9 +158,48 @@
                                             <span class="shrink-0 rounded-full bg-attention-soft px-2 text-[0.6875rem] leading-[1.125rem] font-medium text-attention">Pending return</span>
                                         @endif
                                     </div>
-                                    <p class="mt-0.5 truncate text-xs text-ink-3" title="{{ $details }}">
-                                        {{ $shortLabel($transaction->account) }}@if ($details)<span class="px-1">·</span>{{ $details }}@endif
-                                    </p>
+                                    <div class="mt-0.5 flex min-w-0 items-center text-xs text-ink-3"
+                                         x-data="{
+                                             editing: false,
+                                             note: @js($transaction->notes ?? ''),
+                                             saved: @js($transaction->notes ?? ''),
+                                             fallback: @js($transaction->notes ? '' : ($details ?? '')),
+                                             open() {
+                                                 this.editing = true;
+                                                 this.$nextTick(() => { this.$refs.input.focus(); this.$refs.input.select(); });
+                                             },
+                                             commit() {
+                                                 const value = this.note.trim();
+                                                 this.note = value;
+                                                 this.editing = false;
+                                                 if (value !== this.saved) {
+                                                     this.saved = value;
+                                                     this.$wire.updateNote({{ $transaction->id }}, value);
+                                                 }
+                                             },
+                                             cancel() {
+                                                 this.note = this.saved;
+                                                 this.editing = false;
+                                             },
+                                             next() {
+                                                 this.commit();
+                                                 const rows = [...document.querySelectorAll('[data-tx-id]')];
+                                                 const index = rows.indexOf(this.$root.closest('[data-tx-id]'));
+                                                 rows[index + 1]?.querySelector('[data-note-open]')?.click();
+                                             },
+                                         }">
+                                        <button type="button" data-note-open x-show="!editing" @click="open()" title="Add or edit note"
+                                                class="flex min-w-0 items-center rounded text-left hover:text-ink focus-visible:text-ink">
+                                            <span class="shrink-0">{{ $shortLabel($transaction->account) }}</span>
+                                            <span x-show="note || fallback" class="shrink-0 px-1">·</span>
+                                            <span x-show="note || fallback" x-text="note || fallback" class="truncate"></span>
+                                            <span x-show="!(note || fallback)" class="ml-2 italic md:opacity-0 md:group-hover:opacity-100">Add note</span>
+                                        </button>
+                                        <input x-show="editing" x-cloak x-ref="input" x-model="note" type="text" maxlength="1000"
+                                               placeholder="Add a note…" aria-label="Note for {{ $transaction->description }}"
+                                               @keydown.enter.prevent="next()" @keydown.escape.stop.prevent="cancel()" @blur="commit()"
+                                               class="field h-7 w-full text-xs">
+                                    </div>
                                 </div>
                             </div>
 
