@@ -12,7 +12,10 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
 </head>
-<body class="flex h-full overflow-hidden bg-canvas text-ink antialiased">
+<body class="flex h-full overflow-hidden bg-canvas text-ink antialiased"
+      x-data="{ assistantOpen: false }"
+      @keydown.window.meta.k.prevent="assistantOpen = ! assistantOpen"
+      @keydown.window.ctrl.k.prevent="assistantOpen = ! assistantOpen">
 
     @php
         $navItems = [
@@ -63,6 +66,17 @@
                 </a>
             @endforeach
         </nav>
+
+        {{-- Assistant --}}
+        <div class="px-2 pb-3 lg:px-3">
+            <button type="button" @click="assistantOpen = ! assistantOpen" title="Ask the assistant (⌘K)"
+                    class="flex h-9 w-full items-center justify-center gap-3 rounded-md px-2.5 text-sm transition-colors hover:bg-white/5 hover:text-rail-ink lg:justify-start"
+                    :class="assistantOpen && 'bg-white/[0.08] font-medium text-rail-ink'">
+                <svg class="size-[18px] shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456Z" /></svg>
+                <span class="hidden flex-1 text-left lg:inline">Assistant</span>
+                <kbd class="hidden rounded border border-rail-line px-1.5 font-mono text-[0.6875rem] text-rail-ink-2 lg:inline">⌘K</kbd>
+            </button>
+        </div>
 
         {{-- Theme toggle + sign out --}}
         <div class="space-y-0.5 border-t border-rail-line px-2 py-3 lg:px-3">
@@ -135,6 +149,8 @@
             </div>
         </template>
     </div>
+
+    <livewire:assistant />
 
     @livewireScripts
 </body>

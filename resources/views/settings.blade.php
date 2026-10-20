@@ -30,6 +30,14 @@
                 </div>
                 <livewire:settings.net-worth-accounts />
             </section>
+
+            <section id="assistant" class="grid scroll-mt-6 gap-5 py-10 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-12">
+                <div>
+                    <h2 class="text-[0.9375rem] font-semibold text-ink">AI assistant</h2>
+                    <p class="mt-1 text-sm text-ink-3">Ask questions about your spending and get answers with charts and suggestions. Pick the provider and model it uses.</p>
+                </div>
+                <livewire:settings.ai-assistant />
+            </section>
         </div>
     </div>
 @endsection
